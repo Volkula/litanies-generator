@@ -216,6 +216,128 @@ const RAW_LITANIES: Litany[] = [
       "I give my body, my mind, and my soul to the Emperor.\n" +
       "Let my faith be the armour that no blade can pierce.",
   },
+
+  // ---- Quotes collected from Lexicanum quote sections ----
+  {
+    id: "quote-rotting-carcass",
+    title: "A Rotting Carcass",
+    category: "Quotes (Lexicanum)",
+    source: "Roboute Guilliman",
+    text:
+      "Why do I still live? What more do you want from me?\n" +
+      "I gave everything I had to you, to them.\n" +
+      "Look what they've made of our dream.\n" +
+      "This bloated, rotting carcass of an empire is driven\n" +
+      "not by reason and hope but by fear, hate and ignorance.\n" +
+      "Better that we had all burned in the fires of Horus' ambition\n" +
+      "than live to see this.",
+  },
+  {
+    id: "quote-idolatry",
+    title: "Idolatry & Ignorance",
+    category: "Quotes (Lexicanum)",
+    source: "Roboute Guilliman — White Dwarf, May 2017",
+    text:
+      "Thousands of years. And look what has become of them.\n" +
+      "Of us. Idolatry. Ignorance. Suffering and squalor,\n" +
+      "in the name of a god who never desired the title.",
+  },
+  {
+    id: "quote-know-no-fear",
+    title: "Know No Fear",
+    category: "Quotes (Lexicanum)",
+    source: "Roboute Guilliman",
+    text:
+      "The warrior who acts out of honour cannot fail.\n" +
+      "His duty is honour itself. Even his death —\n" +
+      "if it is honourable — is a reward and can be no failure,\n" +
+      "for it has come through duty.\n" +
+      "Seek honour as you act, therefore, and you will know no fear.",
+  },
+  {
+    id: "quote-admit-defeat",
+    title: "To Admit Defeat",
+    category: "Quotes (Lexicanum)",
+    source: "Roboute Guilliman",
+    text: "To admit defeat is to blaspheme against the Emperor.",
+  },
+  {
+    id: "quote-are-we-not",
+    title: "Are We Not Space Marines?",
+    category: "Quotes (Lexicanum)",
+    source: "Roboute Guilliman — The Horus Heresy: Tempest",
+    text:
+      "Are we not Space Marines?\n" +
+      "Is this not the very task we were created for?",
+  },
+  {
+    id: "quote-gods-of-old",
+    title: "Gods of Old",
+    category: "Quotes (Lexicanum)",
+    source: "Roboute Guilliman — Apocrypha of Skaros",
+    text:
+      "Let them bestride the galaxy like the gods of old,\n" +
+      "sheltering Mankind from destruction\n" +
+      "at the hands of an uncaring universe.",
+  },
+  {
+    id: "quote-worthless-ground",
+    title: "The Worthless Ground",
+    category: "Quotes (Lexicanum)",
+    source: "Roboute Guilliman — On War",
+    text:
+      "In any battle, great or small, the most insignificant of terrain\n" +
+      "and the most worthless of ground can for minutes,\n" +
+      "or perhaps hours, become so valuable that the blood of heroes\n" +
+      "and the wealth of an army's supply does not outweigh it.",
+  },
+  {
+    id: "quote-two-fronts",
+    title: "Two Fronts",
+    category: "Quotes (Lexicanum)",
+    source: "Roboute Guilliman — Codicil 19:23",
+    text:
+      "To conduct battle on two fronts is an act of either\n" +
+      "desperation or utter foolishness. In such an arena it is\n" +
+      "neither skill nor firepower that brings victory,\n" +
+      "but the ability to manipulate that of your enemy.",
+  },
+  {
+    id: "quote-emperors-will",
+    title: "The Emperor's Will",
+    category: "Quotes (Lexicanum)",
+    source: "Roboute Guilliman — Nightbringer (attributed)",
+    text: "Whatever the Emperor's will is, be sure it will find you out.",
+  },
+  {
+    id: "quote-great-irony",
+    title: "The Great Irony",
+    category: "Quotes (Lexicanum)",
+    source: "Roboute Guilliman — Know No Fear",
+    text:
+      "It is the great irony of the Legiones Astartes:\n" +
+      "engineered to kill to achieve a victory of peace\n" +
+      "that they can then be no part of.",
+  },
+  {
+    id: "quote-codex-astartes",
+    title: "Angels of Death",
+    category: "Quotes (Lexicanum)",
+    source: "Codex Astartes, opening — Roboute Guilliman",
+    text:
+      "They shall be pure of heart and strong of body,\n" +
+      "untainted by doubt and unsullied by self-aggrandisement.\n" +
+      "They will be bright stars on the firmament of battle,\n" +
+      "Angels of Death whose shining wings bring swift annihilation\n" +
+      "to the enemies of Man.",
+  },
+  {
+    id: "quote-only-war",
+    title: "Only War",
+    category: "Quotes (Lexicanum)",
+    source: "Warhammer 40,000",
+    text: "In the grim darkness of the far future, there is only war.",
+  },
 ];
 
 export const LITANIES: Litany[] = [...RAW_LITANIES].sort((a, b) =>
