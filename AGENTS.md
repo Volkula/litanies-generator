@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guidance for AI agents and contributors working on **Lithania Generator**.
+Guidance for AI agents and contributors working on **Litanies Generator**.
 
 ## What this project is
 
@@ -12,7 +12,7 @@ GitHub Pages via GitHub Actions.
 
 ```
 index.html                  # entry, loads Google fonts
-vite.config.ts              # base = /lithuania-generator/ for prod builds
+vite.config.ts              # base = /litanies-generator/ for prod builds
 src/
   main.tsx                  # React bootstrap
   App.tsx                   # top-level UI: sidebar tabs, layers, properties

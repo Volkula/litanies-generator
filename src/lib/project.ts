@@ -1,16 +1,17 @@
 import { DEFAULT_CANVAS_SIZE, EditorState, createInitialState } from "../types";
 
-const AUTOSAVE_KEY = "lithania.project.autosave.v1";
+const AUTOSAVE_KEY = "litanies.project.autosave.v1";
+const LEGACY_AUTOSAVE_KEY = "lithania.project.autosave.v1";
 
 export interface ProjectFile {
-  app: "lithania-generator";
+  app: "litanies-generator";
   version: 1;
   state: EditorState;
 }
 
 export function serializeProject(state: EditorState): string {
   const file: ProjectFile = {
-    app: "lithania-generator",
+    app: "litanies-generator",
     version: 1,
     state: { ...state, selectedId: null },
   };
@@ -19,6 +20,10 @@ export function serializeProject(state: EditorState): string {
 
 export function parseProject(raw: string): EditorState {
   const data = JSON.parse(raw);
+  const app = data?.app as string | undefined;
+  if (app && app !== "litanies-generator" && app !== "lithania-generator") {
+    throw new Error("Invalid project file.");
+  }
   const state = (data?.state ?? data) as Partial<EditorState>;
   if (!state || !Array.isArray(state.layers)) {
     throw new Error("Invalid project file.");
@@ -35,6 +40,20 @@ export function parseProject(raw: string): EditorState {
   } as EditorState;
 }
 
+function readAutosaveRaw(): string | null {
+  try {
+    const current = localStorage.getItem(AUTOSAVE_KEY);
+    if (current) return current;
+    const legacy = localStorage.getItem(LEGACY_AUTOSAVE_KEY);
+    if (!legacy) return null;
+    localStorage.setItem(AUTOSAVE_KEY, legacy);
+    localStorage.removeItem(LEGACY_AUTOSAVE_KEY);
+    return legacy;
+  } catch {
+    return null;
+  }
+}
+
 export function saveAutosave(state: EditorState) {
   try {
     localStorage.setItem(AUTOSAVE_KEY, serializeProject(state));
@@ -45,7 +64,7 @@ export function saveAutosave(state: EditorState) {
 
 export function loadAutosave(): EditorState | null {
   try {
-    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    const raw = readAutosaveRaw();
     if (!raw) return null;
     return parseProject(raw);
   } catch {

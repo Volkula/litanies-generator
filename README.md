@@ -1,4 +1,4 @@
-# Lithania Generator
+# Litanies Generator
 
 A browser-based image generator for **Warhammer 40,000 litanies**. Pick a
 canonical Imperial litany (or import your own text), compose it over a
@@ -79,7 +79,7 @@ site and publishes `dist/` to GitHub Pages.
 One-time setup in the GitHub repo: **Settings → Pages → Build and deployment →
 Source = "GitHub Actions"**.
 
-The site is served from `/lithuania-generator/` (configured as the Vite `base`
+The site is served from `/litanies-generator/` (configured as the Vite `base`
 for production builds in `vite.config.ts`). If you fork under a different repo
 name, update that `base`.
 

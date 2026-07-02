@@ -138,7 +138,7 @@ export default function App() {
   }, [custom]);
 
   useEffect(() => {
-    document.title = `${state.projectName} · Lithania Generator`;
+    document.title = `${state.projectName} · Litanies Generator`;
   }, [state.projectName]);
 
   useEffect(() => {
@@ -634,7 +634,7 @@ export default function App() {
             width={26}
             height={26}
           />
-          <span>Lithania Generator</span>
+          <span>Litanies Generator</span>
         </div>
         <input
           className="project-name-input"

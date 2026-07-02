@@ -57,7 +57,7 @@ function safeName(name: string, fallback: string): string {
   return cleaned || fallback;
 }
 
-const PACK_README = `Lithania Generator — asset pack
+const PACK_README = `Litanies Generator — asset pack
 ================================
 
 PNG layers on transparent backgrounds for reassembly.
@@ -74,19 +74,32 @@ Structure:
   images/background.png — background only (if set)
   images/frame.png    — decorative frame only (if enabled)
   manifest.json     — layer positions + full editor state snapshot
+
+Note: hidden layers are exported as visible PNGs; manifest.json keeps the
+original visibility flags from the editor.
 `;
+
+/** Asset packs always render every layer/background, even if hidden on canvas. */
+function packExportState(state: EditorState): EditorState {
+  return {
+    ...state,
+    layers: state.layers.map((l) => ({ ...l, visible: true })),
+    background: { ...state.background, visible: true },
+  };
+}
 
 /**
  * Build an asset pack as a ZIP: composite, every text/image layer on
  * transparent PNG, raw litany text files, frame/background splits.
  */
 export async function exportPack(state: EditorState): Promise<Blob> {
+  const exportState = packExportState(state);
   const zip = new JSZip();
   zip.file("README.txt", PACK_README);
-  zip.file("composite.png", await canvasToBlob(renderToCanvas(state)));
+  zip.file("composite.png", await canvasToBlob(renderToCanvas(exportState)));
 
-  const textLayers = state.layers.filter((l) => l.type === "text");
-  const imageLayers = state.layers.filter((l) => l.type === "image");
+  const textLayers = exportState.layers.filter((l) => l.type === "text");
+  const imageLayers = exportState.layers.filter((l) => l.type === "image");
 
   const textDir = zip.folder("text")!;
   const imageDir = zip.folder("images")!;
@@ -103,13 +116,13 @@ export async function exportPack(state: EditorState): Promise<Blob> {
     if (layer.type === "text") textDir.file(`${base}.txt`, layer.text);
     textDir.file(
       `${base}.png`,
-      await canvasToBlob(renderLayers(state, [layer]))
+      await canvasToBlob(renderLayers(exportState, [layer]))
     );
   }
   if (textLayers.length > 1) {
     textDir.file(
       "all-text.png",
-      await canvasToBlob(renderLayers(state, textLayers))
+      await canvasToBlob(renderLayers(exportState, textLayers))
     );
   }
 
@@ -119,19 +132,19 @@ export async function exportPack(state: EditorState): Promise<Blob> {
     const base = `${String(m).padStart(2, "0")}_${safeName(layer.name, "image")}`;
     imageDir.file(
       `${base}.png`,
-      await canvasToBlob(renderLayers(state, [layer]))
+      await canvasToBlob(renderLayers(exportState, [layer]))
     );
   }
   if (imageLayers.length > 1) {
     imageDir.file(
       "all-images.png",
-      await canvasToBlob(renderLayers(state, imageLayers))
+      await canvasToBlob(renderLayers(exportState, imageLayers))
     );
   }
   if (state.background.src) {
     imageDir.file(
       "background.png",
-      await canvasToBlob(renderLayers(state, [], { withBackground: true }))
+      await canvasToBlob(renderLayers(exportState, [], { withBackground: true }))
     );
   }
   const frameCanvas = renderFrameOnly(state);

@@ -3,15 +3,30 @@ import { downloadBlob } from "./exportImage";
 
 export type SaveDestination = "downloads" | "folder";
 
-const EXPORT_PREFS_KEY = "lithania.export.prefs.v1";
+const EXPORT_PREFS_KEY = "litanies.export.prefs.v1";
+const LEGACY_EXPORT_PREFS_KEY = "lithania.export.prefs.v1";
 
 export interface ExportPrefs {
   destination: SaveDestination;
 }
 
+function readExportPrefsRaw(): string | null {
+  try {
+    const current = localStorage.getItem(EXPORT_PREFS_KEY);
+    if (current) return current;
+    const legacy = localStorage.getItem(LEGACY_EXPORT_PREFS_KEY);
+    if (!legacy) return null;
+    localStorage.setItem(EXPORT_PREFS_KEY, legacy);
+    localStorage.removeItem(LEGACY_EXPORT_PREFS_KEY);
+    return legacy;
+  } catch {
+    return null;
+  }
+}
+
 export function loadExportPrefs(): ExportPrefs {
   try {
-    const raw = localStorage.getItem(EXPORT_PREFS_KEY);
+    const raw = readExportPrefsRaw();
     if (raw) return JSON.parse(raw) as ExportPrefs;
   } catch {
     /* ignore */

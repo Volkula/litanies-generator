@@ -1,10 +1,25 @@
 import { Litany } from "../data/litanies";
 
-const KEY = "lithania.customLitanies.v1";
+const KEY = "litanies.customLitanies.v1";
+const LEGACY_KEY = "lithania.customLitanies.v1";
+
+function readCustomRaw(): string | null {
+  try {
+    const current = localStorage.getItem(KEY);
+    if (current) return current;
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (!legacy) return null;
+    localStorage.setItem(KEY, legacy);
+    localStorage.removeItem(LEGACY_KEY);
+    return legacy;
+  } catch {
+    return null;
+  }
+}
 
 export function loadCustom(): Litany[] {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = readCustomRaw();
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
