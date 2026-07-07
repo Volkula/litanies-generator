@@ -79,9 +79,9 @@ site and publishes `dist/` to GitHub Pages.
 One-time setup in the GitHub repo: **Settings → Pages → Build and deployment →
 Source = "GitHub Actions"**.
 
-The site is served from `/litanies-generator/` (configured as the Vite `base`
-for production builds in `vite.config.ts`). If you fork under a different repo
-name, update that `base`.
+The site is served at [litanies.volkula.com](https://litanies.volkula.com/) with
+Vite `base: /` for production (via `npm run build -- --base /` in deploy). For
+`*.github.io/<repo>/` only, use the default `npm run build` without `--base`.
 
 ## How it works
 

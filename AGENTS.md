@@ -12,7 +12,7 @@ GitHub Pages via GitHub Actions.
 
 ```
 index.html                  # entry, loads Google fonts
-vite.config.ts              # base = /litanies-generator/ for prod builds
+vite.config.ts              # default base /litanies-generator/; deploy passes --base /
 src/
   main.tsx                  # React bootstrap
   App.tsx                   # top-level UI: sidebar tabs, layers, properties
@@ -69,7 +69,8 @@ eslint.config.js            # flat ESLint config (eslint 9 + typescript-eslint)
   surface to the user, never swallow silently.
 - `ctx.letterSpacing` is not universally typed; it's set defensively in a
   try/catch in `render.ts`.
-- The Vite `base` must match the GitHub repo name for Pages to resolve assets.
+- The Vite `base` must match how the site is hosted: `/` for a custom domain at
+  the root, or `/<repo>/` for `*.github.io/<repo>/` project pages.
 
 ## Workflow for changes
 
