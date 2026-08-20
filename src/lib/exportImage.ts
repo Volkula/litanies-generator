@@ -1,8 +1,9 @@
 import { EditorState } from "../types";
 import { getCanvasDimensions } from "./canvasSize";
 import { drawScene } from "./render";
+import { exportSvg } from "./exportSvg";
 
-export type ExportFormat = "png" | "jpeg" | "webp" | "bmp1";
+export type ExportFormat = "png" | "jpeg" | "webp" | "bmp1" | "svg";
 
 export const EXPORT_FORMATS: {
   id: ExportFormat;
@@ -13,6 +14,7 @@ export const EXPORT_FORMATS: {
   { id: "jpeg", label: "JPEG", ext: "jpg" },
   { id: "webp", label: "WebP", ext: "webp" },
   { id: "bmp1", label: "BMP (1-bit B/W)", ext: "bmp" },
+  { id: "svg", label: "SVG (vector text)", ext: "svg" },
 ];
 
 export function renderToCanvas(state: EditorState): HTMLCanvasElement {
@@ -112,6 +114,7 @@ export async function exportImage(
   state: EditorState,
   format: ExportFormat
 ): Promise<Blob> {
+  if (format === "svg") return exportSvg(state);
   const canvas = renderToCanvas(state);
   switch (format) {
     case "png":

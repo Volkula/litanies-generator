@@ -47,6 +47,12 @@ import {
   serializeProject,
 } from "./lib/project";
 import { PRESETS } from "./lib/presets";
+import {
+  FRAME_SHEETS,
+  frameSheetForStyle,
+  frameSheetUrl,
+  isBorderFrameStyle,
+} from "./data/frameLibrary";
 import { registerFontFile } from "./lib/fonts";
 import IconLibrary from "./components/IconLibrary";
 import QuotesCatalog from "./components/QuotesCatalog";
@@ -144,6 +150,12 @@ export default function App() {
   useEffect(() => {
     storeExportPrefs({ destination: saveDestination });
   }, [saveDestination]);
+
+  useEffect(() => {
+    for (const sheet of FRAME_SHEETS) {
+      getImage(frameSheetUrl(sheet));
+    }
+  }, []);
 
   const promptExportFolder = useCallback(async () => {
     const handle = await pickExportFolder();
@@ -590,13 +602,15 @@ export default function App() {
       const ext = EXPORT_FORMATS.find((f) => f.id === exportFormat)!.ext;
       const filename = `${projectBasename(state)}-${state.canvasWidth}x${state.canvasHeight}.${ext}`;
       const mime =
-        exportFormat === "png"
-          ? "image/png"
-          : exportFormat === "jpeg"
-            ? "image/jpeg"
-            : exportFormat === "webp"
-              ? "image/webp"
-              : "image/bmp";
+        exportFormat === "svg"
+          ? "image/svg+xml"
+          : exportFormat === "png"
+            ? "image/png"
+            : exportFormat === "jpeg"
+              ? "image/jpeg"
+              : exportFormat === "webp"
+                ? "image/webp"
+                : "image/bmp";
       const saved = await saveExportFile(blob, filename, mime);
       if (saved) {
         setStatus(`Exported ${filename}.`);
@@ -1231,6 +1245,8 @@ function CanvasControls({
   const bg = state.background;
   const f = state.frame;
   const bw = state.bw;
+  const borderFrame = isBorderFrameStyle(f.style);
+  const borderSheet = borderFrame ? frameSheetForStyle(f.style) : undefined;
   const [draftW, setDraftW] = useState(state.canvasWidth);
   const [draftH, setDraftH] = useState(state.canvasHeight);
   const [lockSquare, setLockSquare] = useState(
@@ -1478,13 +1494,68 @@ function CanvasControls({
               }))
             }
           >
-            <option value="thin">Thin</option>
-            <option value="classic">Classic</option>
-            <option value="double">Double</option>
-            <option value="ornate">Ornate (studs)</option>
-            <option value="banner">Banner / scroll</option>
+            <optgroup label="Vector">
+              <option value="thin">Thin</option>
+              <option value="classic">Classic</option>
+              <option value="double">Double</option>
+              <option value="ornate">Ornate (studs)</option>
+              <option value="banner">Banner / scroll</option>
+            </optgroup>
+            <optgroup label="Custom borders">
+              {FRAME_SHEETS.map((sheet) => (
+                <option key={sheet.id} value={sheet.id}>
+                  {sheet.label}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </Field>
+        {borderFrame && borderSheet && (
+          <>
+            <Field label="Border design">
+              <select
+                className="text-input"
+                value={f.frameVariant}
+                onChange={(e) =>
+                  set((p) => ({
+                    ...p,
+                    frame: {
+                      ...p.frame,
+                      frameVariant: Number(e.target.value),
+                    },
+                  }))
+                }
+              >
+                {borderSheet.variants.map((label, i) => (
+                  <option key={label} value={i}>
+                    {i + 1}. {label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label={`Frame scale (${Math.round(f.frameScale * 100)}%)`}>
+              <Slider
+                min={0.25}
+                max={2}
+                step={0.01}
+                value={f.frameScale}
+                onStart={() => set((p) => ({ ...p }))}
+                onChange={(v) =>
+                  set(
+                    (p) => ({ ...p, frame: { ...p.frame, frameScale: v } }),
+                    "replace"
+                  )
+                }
+              />
+            </Field>
+            <p className="muted">
+              Custom borders are PNG overlays — scale adjusts size relative to
+              the canvas. Export as SVG to get a separate frame layer.
+            </p>
+          </>
+        )}
+        {!borderFrame && (
+          <>
         <Field label="Thickness">
           <Slider
             min={1}
@@ -1533,6 +1604,8 @@ function CanvasControls({
             </button>
           </div>
         </Field>
+          </>
+        )}
       </Section>
     </>
   );
