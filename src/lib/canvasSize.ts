@@ -1,4 +1,5 @@
 import { DEFAULT_CANVAS_SIZE, EditorState } from "../types";
+import { normalizedFrameScale } from "../data/frameLibrary";
 
 export interface CanvasDimensions {
   width: number;
@@ -84,6 +85,7 @@ export function resizeCanvasState(
       ...state.frame,
       thickness: Math.max(1, scaleNum(state.frame.thickness, fontScale)),
       margin: Math.max(0, scaleNum(state.frame.margin, fontScale)),
+      frameScale: Math.round(normalizedFrameScale(state.frame) * fontScale * 100) / 100,
     },
   };
 }

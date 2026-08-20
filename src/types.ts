@@ -62,10 +62,25 @@ export interface BackgroundState {
   visible: boolean;
 }
 
+export type FrameStyle =
+  | "classic"
+  | "double"
+  | "thin"
+  | "ornate"
+  | "banner"
+  | "border1"
+  | "border2"
+  | "border3"
+  | "border4";
+
 export interface FrameState {
   enabled: boolean;
   exportWithFrame: boolean;
-  style: "classic" | "double" | "thin" | "ornate" | "banner";
+  style: FrameStyle;
+  /** Which of the 4 designs on a border sprite sheet (0–3). */
+  frameVariant: number;
+  /** Scale of custom border overlays relative to canvas (0.25–2). */
+  frameScale: number;
   thickness: number;
   margin: number;
   color: MonoColor;
@@ -110,6 +125,8 @@ export function createInitialState(): EditorState {
       enabled: true,
       exportWithFrame: true,
       style: "classic",
+      frameVariant: 0,
+      frameScale: 1,
       thickness: 10,
       margin: 28,
       color: "#000000",

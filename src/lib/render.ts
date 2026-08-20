@@ -5,6 +5,14 @@ import {
   Layer,
   TextLayer,
 } from "../types";
+import {
+  frameSheetForStyle,
+  frameSheetUrl,
+  isBorderFrameStyle,
+  normalizedFrameScale,
+  normalizedFrameVariant,
+  variantSpriteRect,
+} from "../data/frameLibrary";
 import { getCanvasDimensions } from "./canvasSize";
 import { getImage } from "./images";
 
@@ -207,10 +215,39 @@ function drawTextLayer(ctx: CanvasRenderingContext2D, layer: TextLayer) {
   ctx.restore();
 }
 
+function drawBorderFrame(ctx: CanvasRenderingContext2D, state: EditorState) {
+  const f = state.frame;
+  if (!isBorderFrameStyle(f.style)) return;
+  const sheet = frameSheetForStyle(f.style);
+  if (!sheet) return;
+  const img = getImage(frameSheetUrl(sheet));
+  if (!img) return;
+
+  const { width: canvasW, height: canvasH } = getCanvasDimensions(state);
+  const scale = normalizedFrameScale(f);
+  const destW = canvasW * scale;
+  const destH = canvasH * scale;
+  const dx = (canvasW - destW) / 2;
+  const dy = (canvasH - destH) / 2;
+  const src = variantSpriteRect(
+    img,
+    sheet.layout,
+    normalizedFrameVariant(f)
+  );
+  ctx.drawImage(img, src.sx, src.sy, src.sw, src.sh, dx, dy, destW, destH);
+}
+
 export function drawFrame(ctx: CanvasRenderingContext2D, state: EditorState) {
   const f = state.frame;
   const { width: canvasW, height: canvasH } = getCanvasDimensions(state);
   ctx.save();
+
+  if (isBorderFrameStyle(f.style)) {
+    drawBorderFrame(ctx, state);
+    ctx.restore();
+    return;
+  }
+
   ctx.strokeStyle = f.color;
   ctx.fillStyle = f.color;
   const m = f.margin;
@@ -332,12 +369,13 @@ export interface RenderOptions {
   includeFrame: boolean;
   /** Leave the base canvas transparent (used for asset-pack layer exports). */
   transparent?: boolean;
+  includeText?: boolean;
 }
 
-export function drawScene(
+export function drawRasterContent(
   ctx: CanvasRenderingContext2D,
   state: EditorState,
-  opts: RenderOptions
+  opts: Pick<RenderOptions, "transparent"> = {}
 ) {
   const { width: canvasW, height: canvasH } = getCanvasDimensions(state);
   ctx.clearRect(0, 0, canvasW, canvasH);
@@ -354,10 +392,20 @@ export function drawScene(
   if (state.bw.enabled) {
     applyBW(ctx, state.bw, { x: 0, y: 0, w: canvasW, h: canvasH });
   }
+}
 
-  // Text is already pure mono, drawn on top so it stays crisp.
-  for (const layer of state.layers) {
-    if (layer.type === "text") drawTextLayer(ctx, layer);
+export function drawScene(
+  ctx: CanvasRenderingContext2D,
+  state: EditorState,
+  opts: RenderOptions
+) {
+  const includeText = opts.includeText !== false;
+  drawRasterContent(ctx, state, { transparent: opts.transparent });
+
+  if (includeText) {
+    for (const layer of state.layers) {
+      if (layer.type === "text") drawTextLayer(ctx, layer);
+    }
   }
 
   if (state.frame.enabled && opts.includeFrame) {

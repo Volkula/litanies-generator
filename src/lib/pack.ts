@@ -3,6 +3,7 @@ import { EditorState, Layer } from "../types";
 import { getCanvasDimensions } from "./canvasSize";
 import { drawFrame, drawScene } from "./render";
 import { renderToCanvas } from "./exportImage";
+import { exportFrameSvg } from "./exportSvg";
 
 /** Render an arbitrary subset of layers onto a transparent canvas. */
 function renderLayers(
@@ -147,9 +148,13 @@ export async function exportPack(state: EditorState): Promise<Blob> {
       await canvasToBlob(renderLayers(exportState, [], { withBackground: true }))
     );
   }
-  const frameCanvas = renderFrameOnly(state);
+  const frameCanvas = renderFrameOnly(exportState);
   if (frameCanvas) {
     imageDir.file("frame.png", await canvasToBlob(frameCanvas));
+  }
+  const frameSvg = await exportFrameSvg(exportState);
+  if (frameSvg) {
+    imageDir.file("frame.svg", frameSvg);
   }
 
   zip.file("manifest.json", JSON.stringify(state, null, 2));

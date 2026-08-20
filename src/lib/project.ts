@@ -36,6 +36,12 @@ export function parseProject(raw: string): EditorState {
     canvasWidth: state.canvasWidth ?? DEFAULT_CANVAS_SIZE,
     canvasHeight: state.canvasHeight ?? DEFAULT_CANVAS_SIZE,
     projectName: state.projectName?.trim() || "Untitled litany",
+    frame: {
+      ...base.frame,
+      ...state.frame,
+      frameVariant: state.frame?.frameVariant ?? 0,
+      frameScale: state.frame?.frameScale ?? 1,
+    },
     selectedId: null,
   } as EditorState;
 }
