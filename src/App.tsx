@@ -950,6 +950,7 @@ export default function App() {
                     targetHeight: Math.round(state.canvasHeight * 0.92),
                   })
                 }
+                onBackground={(file) => setBackgroundFromSrc(iconUrl(file))}
               />
             )}
 

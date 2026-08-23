@@ -4,13 +4,10 @@ export interface BannerDef {
   file: string;
 }
 
-/** Vector banners traced from the supplied outline PNGs. */
+/** Four tattered-parchment banners (SVG). Click to add like an icon. */
 export const BANNER_LIBRARY: BannerDef[] = [
-  { id: "set1-1", label: "Set 1 — Banner 1", file: "frames/banner-set1-1.svg" },
-  { id: "set1-2", label: "Set 1 — Banner 2", file: "frames/banner-set1-2.svg" },
-  { id: "set1-3", label: "Set 1 — Banner 3", file: "frames/banner-set1-3.svg" },
-  { id: "set1-4", label: "Set 1 — Banner 4", file: "frames/banner-set1-4.svg" },
-  { id: "set2", label: "Set 2 — Tall banner", file: "frames/banner-set2.svg" },
-  { id: "set3", label: "Set 3 — Tall banner", file: "frames/banner-set3.svg" },
-  { id: "set4", label: "Set 4 — Tall banner", file: "frames/banner-set4.svg" },
+  { id: "banner-1", label: "Banner 1", file: "frames/banner-1.svg" },
+  { id: "banner-2", label: "Banner 2", file: "frames/banner-2.svg" },
+  { id: "banner-3", label: "Banner 3", file: "frames/banner-3.svg" },
+  { id: "banner-4", label: "Banner 4", file: "frames/banner-4.svg" },
 ];

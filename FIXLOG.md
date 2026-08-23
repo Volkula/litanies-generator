@@ -93,6 +93,14 @@ emit` when running `tsc -b`.
   `public/frames/banner-*.svg` and add from the **Banners** tab like icons.
   SVG export inlines same-origin SVG layers as nested `<svg>`/`<path>`.
 
+### 10. Banner library showed empty hairlines instead of the 4 SVGs
+
+- **Symptom:** Banners tab listed 7 broken traces of the old overlay sheets.
+- **Cause:** Wrong source files were vectorized.
+- **Fix:** Replace the library with the four supplied banners as
+  `public/frames/banner-1.svg` … `banner-4.svg`. Click/Shift+Click works like
+  Icons.
+
 ---
 
 ## Template for future entries
