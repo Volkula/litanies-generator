@@ -9,6 +9,7 @@ export interface FittedRect {
 }
 
 const spriteCache = new Map<string, HTMLCanvasElement[]>();
+const MIN_COLUMN_WIDTH = 8;
 
 function extractInk(
   img: HTMLImageElement,
@@ -33,7 +34,7 @@ function extractInk(
     if (px[i] > 200) solid++;
   }
   const solidBg = solid > (w * h) / 4;
-  const ink: Uint8Array = new Uint8Array(w * h);
+  const ink = new Uint8Array(w * h);
   for (let p = 0, i = 0; p < ink.length; p++, i += 4) {
     const a = px[i + 3];
     const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
@@ -43,23 +44,30 @@ function extractInk(
       ink[p] = a > 4 ? a : 0;
     }
   }
-  // 1px dilate so hairline strokes survive scaling.
-  const dilate = new Uint8Array(ink);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let m = 0;
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          const xx = x + dx;
-          const yy = y + dy;
-          if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
-          const v = ink[yy * w + xx];
-          if (v > m) m = v;
+  // Hairlines vanish when scaled; two dilate passes keep a visible stroke.
+  let prev = ink;
+  let next = new Uint8Array(ink.length);
+  for (let pass = 0; pass < 2; pass++) {
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let m = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const xx = x + dx;
+            const yy = y + dy;
+            if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+            const v = prev[yy * w + xx];
+            if (v > m) m = v;
+          }
         }
+        next[y * w + x] = m;
       }
-      dilate[y * w + x] = m;
     }
+    const tmp = prev;
+    prev = next;
+    next = tmp;
   }
+  const dilate = prev;
   const cr = color === "#ffffff" ? 255 : 0;
   for (let p = 0, i = 0; p < dilate.length; p++, i += 4) {
     const a = dilate[p];
@@ -94,23 +102,48 @@ function crop(
   return out;
 }
 
+function columnRuns(sheet: HTMLCanvasElement): [number, number][] {
+  const w = sheet.width;
+  const h = sheet.height;
+  const ctx = sheet.getContext("2d")!;
+  let image: ImageData;
+  try {
+    image = ctx.getImageData(0, 0, w, h);
+  } catch {
+    return [[0, w - 1]];
+  }
+  const px = image.data;
+  const used = new Uint8Array(w);
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < h; y++) {
+      if (px[(y * w + x) * 4 + 3] > 4) {
+        used[x] = 1;
+        break;
+      }
+    }
+  }
+  const runs: [number, number][] = [];
+  let x = 0;
+  while (x < w) {
+    while (x < w && !used[x]) x++;
+    if (x >= w) break;
+    const x0 = x;
+    while (x < w && used[x]) x++;
+    if (x - x0 >= MIN_COLUMN_WIDTH) runs.push([x0, x - 1]);
+  }
+  return runs.length ? runs : [[0, w - 1]];
+}
+
 function sliceSheet(
   sheet: HTMLCanvasElement,
   layout: FrameSheetLayout
 ): HTMLCanvasElement[] {
-  const w = sheet.width;
-  const h = sheet.height;
-  if (layout === "grid2x2") {
-    const cw = w / 2;
-    const ch = h / 2;
-    return [0, 1, 2, 3].map((v) => {
-      const col = v % 2;
-      const row = Math.floor(v / 2);
-      return crop(sheet, col * cw, row * ch, cw, ch);
-    });
+  if (layout === "single") {
+    return [crop(sheet, 0, 0, sheet.width, sheet.height)];
   }
-  const ch = h / 4;
-  return [0, 1, 2, 3].map((v) => crop(sheet, 0, v * ch, w, ch));
+  return columnRuns(sheet).map(([x0, x1]) =>
+    crop(sheet, x0, 0, x1 - x0 + 1, sheet.height)
+  );
 }
 
 export function getFrameSprites(
@@ -118,7 +151,7 @@ export function getFrameSprites(
   layout: FrameSheetLayout,
   color: MonoColor
 ): HTMLCanvasElement[] {
-  const key = `${img.src}|${layout}|${color}|${img.naturalWidth}x${img.naturalHeight}|v3`;
+  const key = `${img.src}|${layout}|${color}|${img.naturalWidth}x${img.naturalHeight}|v4`;
   const hit = spriteCache.get(key);
   if (hit) return hit;
   try {
@@ -137,11 +170,12 @@ export function getFrameSprite(
   color: MonoColor
 ): HTMLCanvasElement | null {
   const sprites = getFrameSprites(img, layout, color);
+  if (!sprites.length) return null;
   const v = Math.max(0, Math.min(sprites.length - 1, variant));
   return sprites[v] ?? null;
 }
 
-/** Stretch the sprite onto the scaled canvas rect so the frame reaches the edges. */
+/** Stretch the full banner onto the scaled canvas so it surrounds the litany. */
 export function frameDestRect(
   _sprite: HTMLCanvasElement,
   canvasW: number,
@@ -156,4 +190,41 @@ export function frameDestRect(
     w,
     h,
   };
+}
+
+const strokeCache = new WeakMap<HTMLCanvasElement, Map<string, HTMLCanvasElement>>();
+
+/**
+ * Scale the hairline banner to the canvas, then stamp it on a disk so the
+ * stroke reads as a frame instead of a 1px scratch.
+ */
+export function strokeFrameSprite(
+  sprite: HTMLCanvasElement,
+  destW: number,
+  destH: number,
+  thickness: number
+): HTMLCanvasElement {
+  const w = Math.max(1, Math.round(destW));
+  const h = Math.max(1, Math.round(destH));
+  const radius = Math.max(8, Math.round(thickness));
+  const key = `${w}x${h}|r${radius}`;
+  const bucket = strokeCache.get(sprite) ?? new Map<string, HTMLCanvasElement>();
+  strokeCache.set(sprite, bucket);
+  const hit = bucket.get(key);
+  if (hit) return hit;
+
+  const out = document.createElement("canvas");
+  out.width = w;
+  out.height = h;
+  const ctx = out.getContext("2d")!;
+  ctx.imageSmoothingEnabled = false;
+  const r2 = radius * radius;
+  for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      if (dx * dx + dy * dy > r2) continue;
+      ctx.drawImage(sprite, dx, dy, w, h);
+    }
+  }
+  bucket.set(key, out);
+  return out;
 }

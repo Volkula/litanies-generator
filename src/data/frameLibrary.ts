@@ -5,7 +5,7 @@ export type BorderFrameStyle = Extract<
   "border1" | "border2" | "border3" | "border4"
 >;
 
-export type FrameSheetLayout = "grid2x2" | "column4";
+export type FrameSheetLayout = "columns" | "single";
 
 export interface FrameSheetDef {
   id: BorderFrameStyle;
@@ -18,51 +18,31 @@ export interface FrameSheetDef {
 export const FRAME_SHEETS: FrameSheetDef[] = [
   {
     id: "border1",
-    label: "Set 1 — Scrolls & parchment",
+    label: "Set 1 — Four banners",
     file: "frames/border_1.png",
-    layout: "grid2x2",
-    variants: [
-      "Tattered scroll",
-      "Hanging banner",
-      "Curved scroll",
-      "Weathered page",
-    ],
+    layout: "columns",
+    variants: ["Banner 1", "Banner 2", "Banner 3", "Banner 4"],
   },
   {
     id: "border2",
-    label: "Set 2 — Banners & tapestries",
+    label: "Set 2 — Tall banner",
     file: "frames/border_2.png",
-    layout: "column4",
-    variants: [
-      "Horizontal scroll",
-      "Tabbed tapestry",
-      "Double-scroll pendant",
-      "Notched plaque",
-    ],
+    layout: "single",
+    variants: [],
   },
   {
     id: "border3",
-    label: "Set 3 — Gothic & imperial",
+    label: "Set 3 — Tall banner",
     file: "frames/border_3.png",
-    layout: "column4",
-    variants: [
-      "Industrial tabbed",
-      "Gothic arch",
-      "Corner scroll",
-      "Ornate imperial",
-    ],
+    layout: "single",
+    variants: [],
   },
   {
     id: "border4",
-    label: "Set 4 — Hanging banners",
+    label: "Set 4 — Tall banner",
     file: "frames/border_4.png",
-    layout: "column4",
-    variants: [
-      "Rod scroll",
-      "Pointed banner",
-      "Battle-worn scroll",
-      "Swallowtail",
-    ],
+    layout: "single",
+    variants: [],
   },
 ];
 
@@ -100,23 +80,23 @@ export function variantSpriteRect(
   const w = img.naturalWidth;
   const h = img.naturalHeight;
   const v = Math.max(0, Math.min(3, variant));
-  if (layout === "grid2x2") {
-    const cw = w / 2;
-    const ch = h / 2;
-    const col = v % 2;
-    const row = Math.floor(v / 2);
-    return { sx: col * cw, sy: row * ch, sw: cw, sh: ch };
+  if (layout === "single") {
+    return { sx: 0, sy: 0, sw: w, sh: h };
   }
-  const ch = h / 4;
-  return { sx: 0, sy: v * ch, sw: w, sh: ch };
+  const cw = w / 4;
+  return { sx: v * cw, sy: 0, sw: cw, sh: h };
 }
 
 export function normalizedFrameScale(frame: FrameState): number {
   return frame.frameScale ?? 1;
 }
 
-export function normalizedFrameVariant(frame: FrameState): number {
-  return Math.max(0, Math.min(3, frame.frameVariant ?? 0));
+export function normalizedFrameVariant(
+  frame: FrameState,
+  count = 4
+): number {
+  const n = Math.max(1, count);
+  return Math.max(0, Math.min(n - 1, frame.frameVariant ?? 0));
 }
 
 export function preloadFrameSheets(onReady?: () => void) {

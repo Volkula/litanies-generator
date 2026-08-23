@@ -1439,6 +1439,7 @@ function CanvasControls({
         </Field>
         {borderFrame && borderSheet && (
           <>
+            {borderSheet.variants.length > 1 && (
             <Field label="Border design">
               <select
                 className="text-input"
@@ -1460,6 +1461,7 @@ function CanvasControls({
                 ))}
               </select>
             </Field>
+            )}
             <Field label={`Frame scale (${Math.round(f.frameScale * 100)}%)`}>
               <Slider
                 min={0.25}
@@ -1476,8 +1478,9 @@ function CanvasControls({
               />
             </Field>
             <p className="muted">
-              Custom borders are PNG overlays — scale adjusts size relative to
-              the canvas. Export as SVG to get a separate frame layer.
+              Custom borders are the full banner outlines you added. Scale
+              stretches them to the canvas. Set 1 contains four banners;
+              sets 2–4 are one banner each.
             </p>
           </>
         )}
@@ -1501,8 +1504,6 @@ function CanvasControls({
             </button>
           </div>
         </Field>
-        {!borderFrame && (
-          <>
         <Field label="Thickness">
           <Slider
             min={1}
@@ -1517,6 +1518,7 @@ function CanvasControls({
             }
           />
         </Field>
+        {!borderFrame && (
         <Field label="Margin">
           <Slider
             min={0}
@@ -1531,7 +1533,6 @@ function CanvasControls({
             }
           />
         </Field>
-          </>
         )}
       </Section>
     </>

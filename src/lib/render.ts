@@ -14,7 +14,7 @@ import {
 } from "../data/frameLibrary";
 import { getCanvasDimensions } from "./canvasSize";
 import { getImage } from "./images";
-import { frameDestRect, getFrameSprite } from "./frameSprites";
+import { frameDestRect, getFrameSprite, strokeFrameSprite } from "./frameSprites";
 
 export interface Box {
   x: number;
@@ -228,7 +228,7 @@ function drawBorderFrame(ctx: CanvasRenderingContext2D, state: EditorState) {
     sprite = getFrameSprite(
       img,
       sheet.layout,
-      normalizedFrameVariant(f),
+      normalizedFrameVariant(f, sheet.variants.length || 1),
       f.color
     );
   } catch {
@@ -243,9 +243,9 @@ function drawBorderFrame(ctx: CanvasRenderingContext2D, state: EditorState) {
     canvasH,
     normalizedFrameScale(f)
   );
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(sprite, dest.x, dest.y, dest.w, dest.h);
+  const stroked = strokeFrameSprite(sprite, dest.w, dest.h, f.thickness);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(stroked, dest.x, dest.y, dest.w, dest.h);
 }
 
 export function drawFrame(ctx: CanvasRenderingContext2D, state: EditorState) {
