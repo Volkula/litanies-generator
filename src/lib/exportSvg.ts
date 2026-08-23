@@ -1,14 +1,6 @@
 import { EditorState, TextLayer } from "../types";
-import {
-  frameSheetForStyle,
-  frameSheetUrl,
-  isBorderFrameStyle,
-  normalizedFrameScale,
-  normalizedFrameVariant,
-} from "../data/frameLibrary";
 import { getCanvasDimensions } from "./canvasSize";
-import { frameDestRect, getFrameSprite } from "./frameSprites";
-import { getImage } from "./images";
+import { frameSvgMarkup } from "./frameVector";
 import { drawFrame, drawRasterContent, wrapText } from "./render";
 
 const SVG_FONT_IMPORT =
@@ -24,25 +16,6 @@ function escapeXml(value: string): string {
 
 function canvasToDataUrl(canvas: HTMLCanvasElement): string {
   return canvas.toDataURL("image/png");
-}
-
-async function waitForImage(src: string): Promise<HTMLImageElement | null> {
-  const cached = getImage(src);
-  if (cached) return cached;
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    const timer = window.setTimeout(() => resolve(null), 8000);
-    img.onload = () => {
-      window.clearTimeout(timer);
-      resolve(img);
-    };
-    img.onerror = () => {
-      window.clearTimeout(timer);
-      resolve(null);
-    };
-    img.src = src;
-  });
 }
 
 function measureCtx(): CanvasRenderingContext2D {
@@ -79,9 +52,7 @@ function textLayerSvg(layer: TextLayer, ctx: CanvasRenderingContext2D): string {
         ? "end"
         : "start";
   const spacing =
-    layer.letterSpacing !== 0
-      ? ` letter-spacing="${layer.letterSpacing}"`
-      : "";
+    layer.letterSpacing !== 0 ? ` letter-spacing="${layer.letterSpacing}"` : "";
   // One <text> per line with hanging baseline (matches canvas textBaseline=top).
   // tspan+dy collapses to a single line in Illustrator/Inkscape/Corel.
   return lines
@@ -135,11 +106,16 @@ export async function exportSvg(state: EditorState): Promise<Blob> {
   }
 
   if (state.frame.enabled && state.frame.exportWithFrame) {
-    const frameHref = await frameLayerDataUrl(state);
-    if (frameHref) {
-      parts.push(
-        `<image href="${frameHref}" x="0" y="0" width="${width}" height="${height}" />`
-      );
+    const markup = await frameSvgMarkup(state);
+    if (markup) {
+      parts.push(markup);
+    } else {
+      const frameHref = await frameLayerDataUrl(state);
+      if (frameHref) {
+        parts.push(
+          `<image href="${frameHref}" x="0" y="0" width="${width}" height="${height}" />`
+        );
+      }
     }
   }
 
@@ -147,48 +123,27 @@ export async function exportSvg(state: EditorState): Promise<Blob> {
   return new Blob([parts.join("\n")], { type: "image/svg+xml;charset=utf-8" });
 }
 
-/** Frame-only SVG with a prepared sprite (useful for asset pipelines). */
-export async function exportFrameSvg(state: EditorState): Promise<Blob | null> {
-  if (!state.frame.enabled) return null;
-  const { width, height } = getCanvasDimensions(state);
-  const f = state.frame;
-
-  if (isBorderFrameStyle(f.style)) {
-    const sheet = frameSheetForStyle(f.style);
-    if (!sheet) return null;
-    const img = await waitForImage(frameSheetUrl(sheet));
-    if (!img) return null;
-    const sprite = getFrameSprite(
-      img,
-      sheet.layout,
-      normalizedFrameVariant(f, sheet.variants.length || 1),
-      f.color
-    );
-    if (!sprite) return null;
-    const dest = frameDestRect(
-      sprite,
-      width,
-      height,
-      normalizedFrameScale(f)
-    );
-    const href = canvasToDataUrl(sprite);
-    const svg = [
-      '<?xml version="1.0" encoding="UTF-8"?>',
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
-      `<image href="${href}" x="${dest.x.toFixed(2)}" y="${dest.y.toFixed(2)}" width="${dest.w.toFixed(2)}" height="${dest.h.toFixed(2)}" />`,
-      "</svg>",
-    ].join("\n");
-    return new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  }
-
-  const frameHref = await frameLayerDataUrl(state);
-  if (!frameHref) return null;
+function svgDocument(width: number, height: number, inner: string): Blob {
   const svg = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
-    `<image href="${frameHref}" x="0" y="0" width="${width}" height="${height}" />`,
+    inner,
     "</svg>",
   ].join("\n");
   return new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
 }
 
+/** Frame-only SVG with real vector paths (useful for asset pipelines). */
+export async function exportFrameSvg(state: EditorState): Promise<Blob | null> {
+  if (!state.frame.enabled) return null;
+  const { width, height } = getCanvasDimensions(state);
+  const markup = await frameSvgMarkup(state);
+  if (markup) return svgDocument(width, height, markup);
+  const frameHref = await frameLayerDataUrl(state);
+  if (!frameHref) return null;
+  return svgDocument(
+    width,
+    height,
+    `<image href="${frameHref}" x="0" y="0" width="${width}" height="${height}" />`
+  );
+}
