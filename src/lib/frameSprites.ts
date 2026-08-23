@@ -15,10 +15,6 @@ interface Run {
 
 const spriteCache = new Map<string, HTMLCanvasElement[]>();
 
-function luminance(r: number, g: number, b: number) {
-  return 0.299 * r + 0.587 * g + 0.114 * b;
-}
-
 function runsOf(flags: boolean[], minGap: number): Run[] {
   const raw: Run[] = [];
   let i = 0;
@@ -152,19 +148,26 @@ function recolorAndPunch(
   canvas.height = h;
   const ctx = canvas.getContext("2d")!;
   ctx.drawImage(img, 0, 0);
-  const image = ctx.getImageData(0, 0, w, h);
+  let image: ImageData;
+  try {
+    image = ctx.getImageData(0, 0, w, h);
+  } catch {
+    return { canvas, data: new Uint8ClampedArray(w * h * 4) };
+  }
   const px = image.data;
   const cr = color === "#ffffff" ? 255 : 0;
+  // Line art is black (RGB 0) on transparent. Punching by luminance
+  // deleted every stroke. Opacity is the ink mask.
   for (let i = 0; i < px.length; i += 4) {
-    const lum = luminance(px[i], px[i + 1], px[i + 2]);
-    if (lum < 28) {
+    const a = px[i + 3];
+    if (a < 16) {
       px[i + 3] = 0;
-    } else {
-      px[i] = cr;
-      px[i + 1] = cr;
-      px[i + 2] = cr;
-      px[i + 3] = Math.min(255, Math.round(lum));
+      continue;
     }
+    px[i] = cr;
+    px[i + 1] = cr;
+    px[i + 2] = cr;
+    px[i + 3] = a;
   }
   ctx.putImageData(image, 0, 0);
   return { canvas, data: px };
@@ -241,13 +244,17 @@ export function getFrameSprites(
   layout: FrameSheetLayout,
   color: MonoColor
 ): HTMLCanvasElement[] {
-  const key = `${img.src}|${layout}|${color}|${img.naturalWidth}x${img.naturalHeight}`;
+  const key = `${img.src}|${layout}|${color}|${img.naturalWidth}x${img.naturalHeight}|ink-alpha`;
   const hit = spriteCache.get(key);
   if (hit) return hit;
-  const { canvas, data } = recolorAndPunch(img, color);
-  const sprites = sliceSheet(canvas, data, layout);
-  spriteCache.set(key, sprites);
-  return sprites;
+  try {
+    const { canvas, data } = recolorAndPunch(img, color);
+    const sprites = sliceSheet(canvas, data, layout);
+    spriteCache.set(key, sprites);
+    return sprites;
+  } catch {
+    return [];
+  }
 }
 
 export function getFrameSprite(

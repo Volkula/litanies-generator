@@ -1481,6 +1481,26 @@ function CanvasControls({
             </p>
           </>
         )}
+        <Field label="Frame colour">
+          <div className="row">
+            <button
+              className={f.color === "#000000" ? "active" : ""}
+              onClick={() =>
+                set((p) => ({ ...p, frame: { ...p.frame, color: "#000000" } }))
+              }
+            >
+              Black
+            </button>
+            <button
+              className={f.color === "#ffffff" ? "active" : ""}
+              onClick={() =>
+                set((p) => ({ ...p, frame: { ...p.frame, color: "#ffffff" } }))
+              }
+            >
+              White
+            </button>
+          </div>
+        </Field>
         {!borderFrame && (
           <>
         <Field label="Thickness">
@@ -1510,26 +1530,6 @@ function CanvasControls({
               )
             }
           />
-        </Field>
-        <Field label="Frame colour">
-          <div className="row">
-            <button
-              className={f.color === "#000000" ? "active" : ""}
-              onClick={() =>
-                set((p) => ({ ...p, frame: { ...p.frame, color: "#000000" } }))
-              }
-            >
-              Black
-            </button>
-            <button
-              className={f.color === "#ffffff" ? "active" : ""}
-              onClick={() =>
-                set((p) => ({ ...p, frame: { ...p.frame, color: "#ffffff" } }))
-              }
-            >
-              White
-            </button>
-          </div>
         </Field>
           </>
         )}
