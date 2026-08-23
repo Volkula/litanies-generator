@@ -119,7 +119,7 @@ export async function exportSvg(state: EditorState): Promise<Blob> {
   const parts: string[] = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
-    `<defs><style type="text/css">@import url('${SVG_FONT_IMPORT}');</style></defs>`,
+    `<defs><style type="text/css"><![CDATA[@import url('${SVG_FONT_IMPORT}');]]></style></defs>`,
     `<rect width="100%" height="100%" fill="${state.canvasBg}"/>`,
   ];
 
@@ -175,7 +175,7 @@ export async function exportFrameSvg(state: EditorState): Promise<Blob | null> {
     const svg = [
       '<?xml version="1.0" encoding="UTF-8"?>',
       `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
-      `<image href="${href}" x="${dest.x}" y="${dest.y}" width="${dest.w}" height="${dest.h}" />`,
+      `<image href="${href}" x="${dest.x.toFixed(2)}" y="${dest.y.toFixed(2)}" width="${dest.w.toFixed(2)}" height="${dest.h.toFixed(2)}" />`,
       "</svg>",
     ].join("\n");
     return new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
