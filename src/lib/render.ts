@@ -11,10 +11,10 @@ import {
   isBorderFrameStyle,
   normalizedFrameScale,
   normalizedFrameVariant,
-  variantSpriteRect,
 } from "../data/frameLibrary";
 import { getCanvasDimensions } from "./canvasSize";
 import { getImage } from "./images";
+import { frameDestRect, getFrameSprite } from "./frameSprites";
 
 export interface Box {
   x: number;
@@ -223,18 +223,24 @@ function drawBorderFrame(ctx: CanvasRenderingContext2D, state: EditorState) {
   const img = getImage(frameSheetUrl(sheet));
   if (!img) return;
 
-  const { width: canvasW, height: canvasH } = getCanvasDimensions(state);
-  const scale = normalizedFrameScale(f);
-  const destW = canvasW * scale;
-  const destH = canvasH * scale;
-  const dx = (canvasW - destW) / 2;
-  const dy = (canvasH - destH) / 2;
-  const src = variantSpriteRect(
+  const sprite = getFrameSprite(
     img,
     sheet.layout,
-    normalizedFrameVariant(f)
+    normalizedFrameVariant(f),
+    f.color
   );
-  ctx.drawImage(img, src.sx, src.sy, src.sw, src.sh, dx, dy, destW, destH);
+  if (!sprite) return;
+
+  const { width: canvasW, height: canvasH } = getCanvasDimensions(state);
+  const dest = frameDestRect(
+    sprite,
+    canvasW,
+    canvasH,
+    normalizedFrameScale(f)
+  );
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(sprite, dest.x, dest.y, dest.w, dest.h);
 }
 
 export function drawFrame(ctx: CanvasRenderingContext2D, state: EditorState) {

@@ -84,11 +84,6 @@ const FONTS = [
   "'Courier New', monospace",
 ];
 
-const EMBLEMS = [
-  { name: "Skull & Laurel", file: "emblems/skull-laurel.svg" },
-  { name: "Winged Sword", file: "emblems/winged-sword.svg" },
-];
-
 let counter = 0;
 const uid = (p: string) => `${p}-${Date.now().toString(36)}-${counter++}`;
 
@@ -538,53 +533,6 @@ export default function App() {
     [set]
   );
 
-  const emblemUrl = (file: string) => `${import.meta.env.BASE_URL}${file}`;
-
-  const buildImperialBanner = useCallback(async () => {
-    const { width: cw, height: ch } = getCanvasDimensions(state);
-    const layoutScale = Math.sqrt((cw * ch) / (1024 * 1024));
-    set((p) => ({
-      ...p,
-      canvasBg: "#ffffff",
-      bw: { ...p.bw, enabled: true, invert: false },
-      frame: {
-        ...p.frame,
-        enabled: true,
-        exportWithFrame: true,
-        style: "banner",
-        color: "#000000",
-        thickness: Math.max(4, Math.round(8 * layoutScale)),
-        margin: Math.round(60 * layoutScale),
-      },
-      layers: p.layers.map((l) =>
-        l.type === "text"
-          ? {
-              ...l,
-              fontFamily: "'Ruslan Display', cursive",
-              align: "center",
-              color: "#000000",
-              x: cw / 2,
-              y: Math.round(ch * 0.352),
-              maxWidth: Math.round(cw * 0.547),
-              fontSize: Math.max(8, Math.round(30 * layoutScale)),
-              lineHeight: 1.3,
-            }
-          : l
-      ),
-    }));
-    await addImageFromSrc(emblemUrl(EMBLEMS[0].file), "Skull & Laurel", {
-      targetWidth: Math.round(300 * layoutScale),
-      centerX: cw / 2,
-      centerY: Math.round(ch * 0.205),
-    });
-    await addImageFromSrc(emblemUrl(EMBLEMS[1].file), "Winged Sword", {
-      targetWidth: Math.round(300 * layoutScale),
-      centerX: cw / 2,
-      centerY: Math.round(ch * 0.801),
-    });
-    setStatus("Imperial banner assembled. Tweak text & emblems as needed.");
-  }, [addImageFromSrc, set, state]);
-
   async function handleFileImport(file: File) {
     try {
       const { text } = await importFile(file);
@@ -976,27 +924,6 @@ export default function App() {
                     Use URL above as background
                   </button>
                 </Field>
-                <hr />
-                <h4 className="subhead">Imperial decorations</h4>
-                <div className="preset-grid">
-                  {EMBLEMS.map((em) => (
-                    <button
-                      key={em.file}
-                      onClick={() =>
-                        addImageFromSrc(emblemUrl(em.file), em.name)
-                      }
-                    >
-                      + {em.name}
-                    </button>
-                  ))}
-                  <button className="primary" onClick={buildImperialBanner}>
-                    ⚜ Assemble Imperial Banner
-                  </button>
-                </div>
-                <p className="muted">
-                  «Assemble Imperial Banner» sets the scroll frame, a Cyrillic
-                  font on your text, and adds both emblems — like the reference.
-                </p>
               </Section>
             )}
 
