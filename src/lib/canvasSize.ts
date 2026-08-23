@@ -85,7 +85,7 @@ export function resizeCanvasState(
       ...state.frame,
       thickness: Math.max(1, scaleNum(state.frame.thickness, fontScale)),
       margin: Math.max(0, scaleNum(state.frame.margin, fontScale)),
-      frameScale: Math.round(normalizedFrameScale(state.frame) * fontScale * 100) / 100,
+      frameScale: normalizedFrameScale(state.frame),
     },
   };
 }

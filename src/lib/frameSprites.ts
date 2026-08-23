@@ -11,6 +11,7 @@ export interface FittedRect {
 const spriteCache = new Map<string, HTMLCanvasElement[]>();
 const MIN_COLUMN_WIDTH = 8;
 
+/** Recolor ink to black/white, keep the original hairline alpha. No dilate. */
 function extractInk(
   img: HTMLImageElement,
   color: MonoColor
@@ -29,49 +30,9 @@ function extractInk(
     return canvas;
   }
   const px = image.data;
-  let solid = 0;
-  for (let i = 3; i < px.length; i += 4) {
-    if (px[i] > 200) solid++;
-  }
-  const solidBg = solid > (w * h) / 4;
-  const ink = new Uint8Array(w * h);
-  for (let p = 0, i = 0; p < ink.length; p++, i += 4) {
-    const a = px[i + 3];
-    const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
-    if (solidBg) {
-      ink[p] = a > 8 && lum > 40 ? a : 0;
-    } else {
-      ink[p] = a > 4 ? a : 0;
-    }
-  }
-  // Hairlines vanish when scaled; two dilate passes keep a visible stroke.
-  let prev = ink;
-  let next = new Uint8Array(ink.length);
-  for (let pass = 0; pass < 2; pass++) {
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        let m = 0;
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const xx = x + dx;
-            const yy = y + dy;
-            if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
-            const v = prev[yy * w + xx];
-            if (v > m) m = v;
-          }
-        }
-        next[y * w + x] = m;
-      }
-    }
-    const tmp = prev;
-    prev = next;
-    next = tmp;
-  }
-  const dilate = prev;
   const cr = color === "#ffffff" ? 255 : 0;
-  for (let p = 0, i = 0; p < dilate.length; p++, i += 4) {
-    const a = dilate[p];
-    if (a < 5) {
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i + 3] < 5) {
       px[i] = 0;
       px[i + 1] = 0;
       px[i + 2] = 0;
@@ -80,7 +41,7 @@ function extractInk(
       px[i] = cr;
       px[i + 1] = cr;
       px[i + 2] = cr;
-      px[i + 3] = a;
+      // keep original anti-aliased alpha
     }
   }
   ctx.putImageData(image, 0, 0);
@@ -98,6 +59,7 @@ function crop(
   out.width = Math.max(1, Math.round(cw));
   out.height = Math.max(1, Math.round(ch));
   const ctx = out.getContext("2d")!;
+  ctx.imageSmoothingEnabled = false;
   ctx.drawImage(src, x, y, cw, ch, 0, 0, out.width, out.height);
   return out;
 }
@@ -151,7 +113,7 @@ export function getFrameSprites(
   layout: FrameSheetLayout,
   color: MonoColor
 ): HTMLCanvasElement[] {
-  const key = `${img.src}|${layout}|${color}|${img.naturalWidth}x${img.naturalHeight}|v4`;
+  const key = `${img.src}|${layout}|${color}|${img.naturalWidth}x${img.naturalHeight}|v5`;
   const hit = spriteCache.get(key);
   if (hit) return hit;
   try {
@@ -175,56 +137,23 @@ export function getFrameSprite(
   return sprites[v] ?? null;
 }
 
-/** Stretch the full banner onto the scaled canvas so it surrounds the litany. */
+/**
+ * Fit the banner inside the canvas, keeping its original aspect ratio.
+ * `scale` 1 = 100% fit; larger values zoom (may clip).
+ */
 export function frameDestRect(
-  _sprite: HTMLCanvasElement,
+  sprite: HTMLCanvasElement,
   canvasW: number,
   canvasH: number,
   scale: number
 ): FittedRect {
-  const w = canvasW * scale;
-  const h = canvasH * scale;
+  const fit = Math.min(canvasW / sprite.width, canvasH / sprite.height);
+  const w = sprite.width * fit * scale;
+  const h = sprite.height * fit * scale;
   return {
     x: (canvasW - w) / 2,
     y: (canvasH - h) / 2,
     w,
     h,
   };
-}
-
-const strokeCache = new WeakMap<HTMLCanvasElement, Map<string, HTMLCanvasElement>>();
-
-/**
- * Scale the hairline banner to the canvas, then stamp it on a disk so the
- * stroke reads as a frame instead of a 1px scratch.
- */
-export function strokeFrameSprite(
-  sprite: HTMLCanvasElement,
-  destW: number,
-  destH: number,
-  thickness: number
-): HTMLCanvasElement {
-  const w = Math.max(1, Math.round(destW));
-  const h = Math.max(1, Math.round(destH));
-  const radius = Math.max(8, Math.round(thickness));
-  const key = `${w}x${h}|r${radius}`;
-  const bucket = strokeCache.get(sprite) ?? new Map<string, HTMLCanvasElement>();
-  strokeCache.set(sprite, bucket);
-  const hit = bucket.get(key);
-  if (hit) return hit;
-
-  const out = document.createElement("canvas");
-  out.width = w;
-  out.height = h;
-  const ctx = out.getContext("2d")!;
-  ctx.imageSmoothingEnabled = false;
-  const r2 = radius * radius;
-  for (let dy = -radius; dy <= radius; dy++) {
-    for (let dx = -radius; dx <= radius; dx++) {
-      if (dx * dx + dy * dy > r2) continue;
-      ctx.drawImage(sprite, dx, dy, w, h);
-    }
-  }
-  bucket.set(key, out);
-  return out;
 }

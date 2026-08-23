@@ -79,7 +79,7 @@ export interface FrameState {
   style: FrameStyle;
   /** Which of the 4 designs on a border sprite sheet (0–3). */
   frameVariant: number;
-  /** Scale of custom border overlays relative to canvas (0.25–2). */
+  /** Custom PNG overlay scale. 1 = fit inside the canvas, aspect ratio kept. */
   frameScale: number;
   thickness: number;
   margin: number;
