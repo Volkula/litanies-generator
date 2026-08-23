@@ -223,12 +223,17 @@ function drawBorderFrame(ctx: CanvasRenderingContext2D, state: EditorState) {
   const img = getImage(frameSheetUrl(sheet));
   if (!img) return;
 
-  const sprite = getFrameSprite(
-    img,
-    sheet.layout,
-    normalizedFrameVariant(f),
-    f.color
-  );
+  let sprite: HTMLCanvasElement | null = null;
+  try {
+    sprite = getFrameSprite(
+      img,
+      sheet.layout,
+      normalizedFrameVariant(f),
+      f.color
+    );
+  } catch {
+    return;
+  }
   if (!sprite) return;
 
   const { width: canvasW, height: canvasH } = getCanvasDimensions(state);
