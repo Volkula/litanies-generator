@@ -69,6 +69,21 @@ emit` when running `tsc -b`.
 
 ---
 
+## 2026-08-23 — SVG frame was a bitmap
+
+### 8. Exported SVG frame looked like a low-poly polyline when zoomed
+
+- **Symptom:** Opening an SVG export and zooming the banner showed a jagged
+  faceted edge instead of a smooth vector stroke.
+- **Cause:** Custom frames (and procedural frames) were painted to a canvas and
+  embedded as `<image href="data:image/png…">`. A 1px anti-aliased PNG hairline
+  becomes pixel stairs under zoom.
+- **Fix:** Trace PNG banners to cubic Bézier paths (evenodd fill) and emit
+  procedural frames as SVG `<path>` / `<rect>` / `<circle>`. Text was already
+  vector.
+
+---
+
 ## Template for future entries
 
 ```

@@ -1,10 +1,4 @@
-import {
-  BWState,
-  EditorState,
-  ImageLayer,
-  Layer,
-  TextLayer,
-} from "../types";
+import { BWState, EditorState, ImageLayer, Layer, TextLayer } from "../types";
 import {
   frameSheetForStyle,
   frameSheetUrl,
@@ -237,12 +231,7 @@ function drawBorderFrame(ctx: CanvasRenderingContext2D, state: EditorState) {
   if (!sprite) return;
 
   const { width: canvasW, height: canvasH } = getCanvasDimensions(state);
-  const dest = frameDestRect(
-    sprite,
-    canvasW,
-    canvasH,
-    normalizedFrameScale(f)
-  );
+  const dest = frameDestRect(sprite, canvasW, canvasH, normalizedFrameScale(f));
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(sprite, dest.x, dest.y, dest.w, dest.h);
@@ -277,10 +266,10 @@ export function drawFrame(ctx: CanvasRenderingContext2D, state: EditorState) {
   };
 
   if (f.style === "banner") {
-    drawBannerPath(ctx, m, canvasW, canvasH);
     ctx.lineWidth = t;
     ctx.lineJoin = "round";
-    ctx.stroke();
+    ctx.lineCap = "round";
+    ctx.stroke(new Path2D(bannerPathD(m, canvasW, canvasH)));
   } else if (f.style === "thin") {
     strokeRect(0, t);
   } else if (f.style === "classic") {
@@ -306,16 +295,19 @@ export function drawFrame(ctx: CanvasRenderingContext2D, state: EditorState) {
   ctx.restore();
 }
 
+function n(v: number): string {
+  return (Math.round(v * 100) / 100).toString();
+}
+
 /**
  * Organic "luggage-tag" banner outline: rounded top shoulders, near-straight
  * sides, and a softly tapered rounded base — matching the reference scroll.
  */
-function drawBannerPath(
-  ctx: CanvasRenderingContext2D,
+export function bannerPathD(
   margin: number,
   canvasW: number,
   canvasH: number
-) {
+): string {
   const left = margin;
   const right = canvasW - margin;
   const top = margin;
@@ -323,57 +315,16 @@ function drawBannerPath(
   const cx = canvasW / 2;
   const w = right - left;
   const h = bottom - top;
-
-  ctx.beginPath();
-  ctx.moveTo(cx, top);
-  // right shoulder
-  ctx.bezierCurveTo(
-    right - w * 0.04,
-    top,
-    right,
-    top + h * 0.1,
-    right,
-    top + h * 0.2
-  );
-  // right side (slightly convex)
-  ctx.bezierCurveTo(
-    right + w * 0.015,
-    top + h * 0.38,
-    right + w * 0.015,
-    top + h * 0.55,
-    right - w * 0.01,
-    top + h * 0.66
-  );
-  // taper to bottom centre
-  ctx.bezierCurveTo(
-    right - w * 0.06,
-    bottom - h * 0.12,
-    cx + w * 0.2,
-    bottom,
-    cx,
-    bottom
-  );
-  // mirror: bottom centre to left
-  ctx.bezierCurveTo(
-    cx - w * 0.2,
-    bottom,
-    left + w * 0.06,
-    bottom - h * 0.12,
-    left + w * 0.01,
-    top + h * 0.66
-  );
-  // left side
-  ctx.bezierCurveTo(
-    left - w * 0.015,
-    top + h * 0.55,
-    left - w * 0.015,
-    top + h * 0.38,
-    left,
-    top + h * 0.2
-  );
-  // left shoulder
-  ctx.bezierCurveTo(left, top + h * 0.1, left + w * 0.04, top, cx, top);
-  ctx.closePath();
+  return [
+    `M${n(cx)} ${n(top)}`,
+    `C${n(right - w * 0.04)} ${n(top)} ${n(right)} ${n(top + h * 0.1)} ${n(right)} ${n(top + h * 0.2)}`,
+    `C${n(right + w * 0.015)} ${n(top + h * 0.38)} ${n(right + w * 0.015)} ${n(top + h * 0.55)} ${n(right - w * 0.01)} ${n(top + h * 0.66)}`,
+    `C${n(right - w * 0.06)} ${n(bottom - h * 0.12)} ${n(cx + w * 0.2)} ${n(bottom)} ${n(cx)} ${n(bottom)}`,
+    `C${n(cx - w * 0.2)} ${n(bottom)} ${n(left + w * 0.06)} ${n(bottom - h * 0.12)} ${n(left + w * 0.01)} ${n(top + h * 0.66)}`,
+    `C${n(left - w * 0.015)} ${n(top + h * 0.55)} ${n(left - w * 0.015)} ${n(top + h * 0.38)} ${n(left)} ${n(top + h * 0.2)}`,
+    `C${n(left)} ${n(top + h * 0.1)} ${n(left + w * 0.04)} ${n(top)} ${n(cx)} ${n(top)}`,
+    "Z",
+  ].join("");
 }
 
 export interface RenderOptions {
