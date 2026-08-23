@@ -7,7 +7,7 @@ import {
   normalizedFrameVariant,
 } from "../data/frameLibrary";
 import { getCanvasDimensions } from "./canvasSize";
-import { frameDestRect, getFrameSprite, strokeFrameSprite } from "./frameSprites";
+import { frameDestRect, getFrameSprite } from "./frameSprites";
 import { getImage } from "./images";
 import { drawFrame, drawRasterContent, wrapText } from "./render";
 
@@ -171,8 +171,7 @@ export async function exportFrameSvg(state: EditorState): Promise<Blob | null> {
       height,
       normalizedFrameScale(f)
     );
-    const stroked = strokeFrameSprite(sprite, dest.w, dest.h, f.thickness);
-    const href = canvasToDataUrl(stroked);
+    const href = canvasToDataUrl(sprite);
     const svg = [
       '<?xml version="1.0" encoding="UTF-8"?>',
       `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,

@@ -1462,25 +1462,55 @@ function CanvasControls({
               </select>
             </Field>
             )}
-            <Field label={`Frame scale (${Math.round(f.frameScale * 100)}%)`}>
+            <Field label="Frame scale (%)">
               <Slider
-                min={0.25}
-                max={2}
-                step={0.01}
-                value={f.frameScale}
+                min={20}
+                max={300}
+                step={1}
+                value={Math.round(f.frameScale * 100)}
                 onStart={() => set((p) => ({ ...p }))}
                 onChange={(v) =>
                   set(
-                    (p) => ({ ...p, frame: { ...p.frame, frameScale: v } }),
+                    (p) => ({
+                      ...p,
+                      frame: { ...p.frame, frameScale: v / 100 },
+                    }),
                     "replace"
                   )
                 }
               />
+              <div className="row">
+                <NumberInput
+                  min={20}
+                  max={300}
+                  step={1}
+                  value={Math.round(f.frameScale * 100)}
+                  onChange={(v) =>
+                    set((p) => ({
+                      ...p,
+                      frame: {
+                        ...p.frame,
+                        frameScale: Math.min(3, Math.max(0.2, v / 100)),
+                      },
+                    }))
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    set((p) => ({
+                      ...p,
+                      frame: { ...p.frame, frameScale: 1 },
+                    }))
+                  }
+                >
+                  Fit
+                </button>
+              </div>
             </Field>
             <p className="muted">
-              Custom borders are the full banner outlines you added. Scale
-              stretches them to the canvas. Set 1 contains four banners;
-              sets 2–4 are one banner each.
+              Same thin outlines as your PNGs, proportions kept. 100% = fit
+              inside the canvas. Scale zooms without stretching.
             </p>
           </>
         )}
@@ -1504,6 +1534,8 @@ function CanvasControls({
             </button>
           </div>
         </Field>
+        {!borderFrame && (
+          <>
         <Field label="Thickness">
           <Slider
             min={1}
@@ -1518,7 +1550,6 @@ function CanvasControls({
             }
           />
         </Field>
-        {!borderFrame && (
         <Field label="Margin">
           <Slider
             min={0}
@@ -1533,6 +1564,7 @@ function CanvasControls({
             }
           />
         </Field>
+          </>
         )}
       </Section>
     </>
