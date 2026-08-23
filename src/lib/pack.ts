@@ -1,9 +1,8 @@
 import JSZip from "jszip";
 import { EditorState, Layer } from "../types";
 import { getCanvasDimensions } from "./canvasSize";
-import { drawFrame, drawScene } from "./render";
+import { drawScene } from "./render";
 import { renderToCanvas } from "./exportImage";
-import { exportFrameSvg } from "./exportSvg";
 
 /** Render an arbitrary subset of layers onto a transparent canvas. */
 function renderLayers(
@@ -26,17 +25,6 @@ function renderLayers(
     selectedId: null,
   };
   drawScene(ctx, subState, { includeFrame: false, transparent: true });
-  return canvas;
-}
-
-function renderFrameOnly(state: EditorState): HTMLCanvasElement | null {
-  if (!state.frame.enabled) return null;
-  const { width, height } = getCanvasDimensions(state);
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d")!;
-  drawFrame(ctx, state);
   return canvas;
 }
 
@@ -65,7 +53,7 @@ PNG layers on transparent backgrounds for reassembly.
 Canvas size is recorded in manifest.json (canvasWidth × canvasHeight).
 
 Structure:
-  composite.png     — flat preview (respects export-with-frame setting)
+  composite.png     — flat preview
   text/litany.txt   — all text layers joined
   text/NN_name.txt  — raw text per layer
   text/NN_name.png  — rendered text layer (transparent)
@@ -73,7 +61,6 @@ Structure:
   images/NN_name.png — each image layer separately
   images/all-images.png — all image layers (if multiple)
   images/background.png — background only (if set)
-  images/frame.png    — decorative frame only (if enabled)
   manifest.json     — layer positions + full editor state snapshot
 
 Note: hidden layers are exported as visible PNGs; manifest.json keeps the
@@ -91,7 +78,7 @@ function packExportState(state: EditorState): EditorState {
 
 /**
  * Build an asset pack as a ZIP: composite, every text/image layer on
- * transparent PNG, raw litany text files, frame/background splits.
+ * transparent PNG, raw litany text files, background splits.
  */
 export async function exportPack(state: EditorState): Promise<Blob> {
   const exportState = packExportState(state);
@@ -145,16 +132,10 @@ export async function exportPack(state: EditorState): Promise<Blob> {
   if (state.background.src) {
     imageDir.file(
       "background.png",
-      await canvasToBlob(renderLayers(exportState, [], { withBackground: true }))
+      await canvasToBlob(
+        renderLayers(exportState, [], { withBackground: true })
+      )
     );
-  }
-  const frameCanvas = renderFrameOnly(exportState);
-  if (frameCanvas) {
-    imageDir.file("frame.png", await canvasToBlob(frameCanvas));
-  }
-  const frameSvg = await exportFrameSvg(exportState);
-  if (frameSvg) {
-    imageDir.file("frame.svg", frameSvg);
   }
 
   zip.file("manifest.json", JSON.stringify(state, null, 2));

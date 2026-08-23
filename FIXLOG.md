@@ -78,9 +78,20 @@ emit` when running `tsc -b`.
 - **Cause:** Custom frames (and procedural frames) were painted to a canvas and
   embedded as `<image href="data:image/png…">`. A 1px anti-aliased PNG hairline
   becomes pixel stairs under zoom.
-- **Fix:** Trace PNG banners to cubic Bézier paths (evenodd fill) and emit
+- Fix:** Trace PNG banners to cubic Bézier paths (evenodd fill) and emit
   procedural frames as SVG `<path>` / `<rect>` / `<circle>`. Text was already
   vector.
+
+## 2026-08-23 — Banners as layers, overlay frame gone
+
+### 9. Overlay frame settings made banners unusable
+
+- **Symptom:** Frame tab treated banners as a global overlay (scale/style/fit)
+  instead of movable artwork, and SVG export often baked them as a PNG.
+- **Cause:** Frames were a separate `EditorState.frame` compositor, not layers.
+- **Fix:** Removed the Canvas/Export frame UI. Traced outlines live in
+  `public/frames/banner-*.svg` and add from the **Banners** tab like icons.
+  SVG export inlines same-origin SVG layers as nested `<svg>`/`<path>`.
 
 ---
 

@@ -41,6 +41,8 @@ export function parseProject(raw: string): EditorState {
       ...state.frame,
       frameVariant: state.frame?.frameVariant ?? 0,
       frameScale: state.frame?.frameScale ?? 1,
+      enabled: false,
+      exportWithFrame: false,
     },
     selectedId: null,
   } as EditorState;

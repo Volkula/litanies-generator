@@ -43,7 +43,8 @@ eslint.config.js            # flat ESLint config (eslint 9 + typescript-eslint)
 - **Single source of truth**: `EditorState` (layers, background, frame, bw,
   canvasBg, selectedId). Rendering is a pure function of this state.
 - **Rendering**: `drawScene(ctx, state, { includeFrame })` paints background →
-  image layers → global B/W pass → text → frame. Text is drawn _after_ the B/W
+  image layers → global B/W pass → text. Overlay frames were removed; banners
+  are ordinary image layers from the Banners tab. Text is drawn _after_ the B/W
   pass so it stays crisp 1-bit.
 - **History**: `useHistory` keeps `past/present/future`. Use `set(updater,
 "commit")` for discrete edits and `set(updater, "replace")` during continuous

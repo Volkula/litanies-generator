@@ -122,8 +122,8 @@ export function createInitialState(): EditorState {
       visible: true,
     },
     frame: {
-      enabled: true,
-      exportWithFrame: true,
+      enabled: false,
+      exportWithFrame: false,
       style: "classic",
       frameVariant: 0,
       frameScale: 1,
