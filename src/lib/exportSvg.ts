@@ -5,15 +5,14 @@ import {
   isBorderFrameStyle,
   normalizedFrameScale,
   normalizedFrameVariant,
-  variantSpriteRect,
 } from "../data/frameLibrary";
 import { getCanvasDimensions } from "./canvasSize";
+import { frameDestRect, getFrameSprite } from "./frameSprites";
 import { getImage } from "./images";
-import {
-  drawFrame,
-  drawRasterContent,
-  wrapText,
-} from "./render";
+import { drawFrame, drawRasterContent, wrapText } from "./render";
+
+const SVG_FONT_IMPORT =
+  "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Cinzel+Decorative:wght@400;700;900&family=IM+Fell+English:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=UnifrakturMaguntia&family=MedievalSharp&family=Pirata+One&family=Marcellus+SC&family=Metamorphous&family=Ruslan+Display&family=Yeseva+One&family=Forum&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap";
 
 function escapeXml(value: string): string {
   return value
@@ -57,9 +56,19 @@ function fontString(layer: TextLayer): string {
   return `${layer.italic ? "italic " : ""}${layer.fontWeight} ${layer.fontSize}px ${layer.fontFamily}`;
 }
 
+function svgFontFamily(family: string): string {
+  return family.replace(/'/g, "");
+}
+
 function textLayerSvg(layer: TextLayer, ctx: CanvasRenderingContext2D): string {
   if (!layer.visible) return "";
   ctx.font = fontString(layer);
+  try {
+    (ctx as unknown as { letterSpacing: string }).letterSpacing =
+      `${layer.letterSpacing}px`;
+  } catch {
+    /* ignore */
+  }
   const content = layer.uppercase ? layer.text.toUpperCase() : layer.text;
   const lines = wrapText(ctx, content, layer.maxWidth);
   const lineH = layer.fontSize * layer.lineHeight;
@@ -69,13 +78,18 @@ function textLayerSvg(layer: TextLayer, ctx: CanvasRenderingContext2D): string {
       : layer.align === "right"
         ? "end"
         : "start";
-  const tspans = lines
+  const spacing =
+    layer.letterSpacing !== 0
+      ? ` letter-spacing="${layer.letterSpacing}"`
+      : "";
+  // One <text> per line with hanging baseline (matches canvas textBaseline=top).
+  // tspan+dy collapses to a single line in Illustrator/Inkscape/Corel.
+  return lines
     .map((line, i) => {
-      const dy = i === 0 ? 0 : lineH;
-      return `<tspan x="${layer.x}" dy="${dy}">${escapeXml(line || " ")}</tspan>`;
+      const y = layer.y + i * lineH;
+      return `<text x="${layer.x}" y="${y.toFixed(2)}" text-anchor="${anchor}" dominant-baseline="hanging" alignment-baseline="hanging" font-family="${escapeXml(svgFontFamily(layer.fontFamily))}" font-size="${layer.fontSize}px" font-weight="${layer.fontWeight}" font-style="${layer.italic ? "italic" : "normal"}" fill="${layer.color}"${spacing} xml:space="preserve">${escapeXml(line || " ")}</text>`;
     })
-    .join("");
-  return `<text x="${layer.x}" y="${layer.y}" text-anchor="${anchor}" font-family="${escapeXml(layer.fontFamily)}" font-size="${layer.fontSize}" font-weight="${layer.fontWeight}" font-style="${layer.italic ? "italic" : "normal"}" fill="${layer.color}">${tspans}</text>`;
+    .join("\n");
 }
 
 async function frameLayerDataUrl(state: EditorState): Promise<string | null> {
@@ -105,6 +119,7 @@ export async function exportSvg(state: EditorState): Promise<Blob> {
   const parts: string[] = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
+    `<defs><style type="text/css">@import url('${SVG_FONT_IMPORT}');</style></defs>`,
     `<rect width="100%" height="100%" fill="${state.canvasBg}"/>`,
   ];
 
@@ -132,7 +147,7 @@ export async function exportSvg(state: EditorState): Promise<Blob> {
   return new Blob([parts.join("\n")], { type: "image/svg+xml;charset=utf-8" });
 }
 
-/** Frame-only SVG with embedded sprite crop (useful for asset pipelines). */
+/** Frame-only SVG with a prepared sprite (useful for asset pipelines). */
 export async function exportFrameSvg(state: EditorState): Promise<Blob | null> {
   if (!state.frame.enabled) return null;
   const { width, height } = getCanvasDimensions(state);
@@ -143,26 +158,24 @@ export async function exportFrameSvg(state: EditorState): Promise<Blob | null> {
     if (!sheet) return null;
     const img = await waitForImage(frameSheetUrl(sheet));
     if (!img) return null;
-    const src = variantSpriteRect(
+    const sprite = getFrameSprite(
       img,
       sheet.layout,
-      normalizedFrameVariant(f)
+      normalizedFrameVariant(f),
+      f.color
     );
-    const scale = normalizedFrameScale(f);
-    const destW = width * scale;
-    const destH = height * scale;
-    const dx = (width - destW) / 2;
-    const dy = (height - destH) / 2;
-    const cropCanvas = document.createElement("canvas");
-    cropCanvas.width = Math.round(src.sw);
-    cropCanvas.height = Math.round(src.sh);
-    const cropCtx = cropCanvas.getContext("2d")!;
-    cropCtx.drawImage(img, src.sx, src.sy, src.sw, src.sh, 0, 0, src.sw, src.sh);
-    const href = canvasToDataUrl(cropCanvas);
+    if (!sprite) return null;
+    const dest = frameDestRect(
+      sprite,
+      width,
+      height,
+      normalizedFrameScale(f)
+    );
+    const href = canvasToDataUrl(sprite);
     const svg = [
       '<?xml version="1.0" encoding="UTF-8"?>',
       `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
-      `<image href="${href}" x="${dx}" y="${dy}" width="${destW}" height="${destH}" />`,
+      `<image href="${href}" x="${dest.x}" y="${dest.y}" width="${dest.w}" height="${dest.h}" />`,
       "</svg>",
     ].join("\n");
     return new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
@@ -178,3 +191,4 @@ export async function exportFrameSvg(state: EditorState): Promise<Blob | null> {
   ].join("\n");
   return new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
 }
+
