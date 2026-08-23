@@ -102,7 +102,7 @@ export default function CanvasStage({
     const sctx = scene.getContext("2d", { willReadFrequently: true });
     const octx = overlay.getContext("2d");
     if (!sctx || !octx) return;
-    drawScene(sctx, state, { includeFrame: state.frame.enabled });
+    drawScene(sctx, state, { includeFrame: false });
 
     octx.clearRect(0, 0, canvasW, canvasH);
     const sel = state.layers.find((l) => l.id === state.selectedId);

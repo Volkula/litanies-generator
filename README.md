@@ -22,20 +22,18 @@ in several formats. Runs entirely in the browser — no server, no backend.
    black & white, with adjustable threshold, invert and ordered dithering.
    Export as **PNG, JPEG, WebP, or true 1-bit BMP**.
 4. **Background sizing & cropping** — load a background image and define the
-   source crop rectangle that is scaled to _cover_ the 1024² canvas. Add a
-   decorative **frame** (thin / classic / double / ornate) and choose whether
-   it is included in the export.
+   source crop rectangle that is scaled to _cover_ the canvas. Vector **banners**
+   (tattered outline scrolls) live in the **Banners** tab — click to add one as
+   a layer, same as an icon; SVG export keeps the outline as paths.
 5. **Image layers** — add any image (file **or remote URL**) and resize, crop,
    flip on either axis, rotate, set opacity, and apply a per-image B/W
    threshold.
 6. **Undo / redo** — full history with `Ctrl+Z` / `Ctrl+Y` (and `Ctrl+Shift+Z`).
    `Delete` removes the selected layer.
 7. **Runs in the browser, deployed via GitHub Actions** to GitHub Pages.
-8. **Imperial banner kit** — an organic **banner/scroll frame** shape, built-in
-   **emblems** (skull-and-laurel, winged sword), and a one-click **“Assemble
-   Imperial Banner”** that arranges emblems + Cyrillic text + scroll frame like
-   the reference. Cyrillic-capable fonts are bundled, and you can **upload your
-   own font** (e.g. a Cyrillic Fraktur) via the Text tab.
+8. **Imperial banner kit** — built-in **emblems**, a one-click **“Assemble
+   Imperial Banner”** for emblems + Cyrillic text, Cyrillic-capable fonts, and
+   **upload your own font** (e.g. a Cyrillic Fraktur) via the Text tab.
 9. **Iconography library** — **456 WH40k faction / iconography SVGs** (Imperium,
    Chaos, Xenos sub-factions, General) in the **Icons** tab, searchable and
    filterable by category. Click to drop an icon onto the canvas, Shift+Click to

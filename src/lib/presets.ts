@@ -34,12 +34,6 @@ export const PRESETS: LayoutPreset[] = [
       }),
       canvasBg: "#ffffff",
       bw: { ...s.bw, enabled: true, invert: false },
-      frame: {
-        ...s.frame,
-        enabled: true,
-        exportWithFrame: true,
-        style: "classic",
-      },
     }),
   },
   {
@@ -55,13 +49,6 @@ export const PRESETS: LayoutPreset[] = [
       }),
       canvasBg: "#000000",
       bw: { ...s.bw, enabled: true },
-      frame: {
-        ...s.frame,
-        enabled: true,
-        exportWithFrame: true,
-        style: "double",
-        color: "#ffffff",
-      },
     }),
   },
   {
@@ -77,22 +64,15 @@ export const PRESETS: LayoutPreset[] = [
         lineHeight: 1.4,
       }),
       canvasBg: "#ffffff",
-      frame: {
-        ...s.frame,
-        enabled: true,
-        exportWithFrame: true,
-        style: "ornate",
-        thickness: 12,
-        margin: 40,
-      },
     }),
   },
   {
     id: "plain",
-    name: "Plain (no frame)",
+    name: "Plain (reset colours)",
     apply: (s) => ({
       ...s,
-      frame: { ...s.frame, enabled: false, exportWithFrame: false },
+      canvasBg: "#ffffff",
+      bw: { ...s.bw, enabled: true, invert: false },
     }),
   },
 ];

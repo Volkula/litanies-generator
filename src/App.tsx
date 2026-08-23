@@ -47,20 +47,22 @@ import {
   serializeProject,
 } from "./lib/project";
 import { PRESETS } from "./lib/presets";
-import {
-  FRAME_SHEETS,
-  frameSheetForStyle,
-  frameSheetUrl,
-  isBorderFrameStyle,
-} from "./data/frameLibrary";
 import { registerFontFile } from "./lib/fonts";
 import IconLibrary from "./components/IconLibrary";
+import BannerLibrary from "./components/BannerLibrary";
 import QuotesCatalog from "./components/QuotesCatalog";
 import { exportPack } from "./lib/pack";
 import { iconUrl } from "./lib/icons";
 
 type Tab =
-  "library" | "quotes" | "text" | "image" | "icons" | "canvas" | "export";
+  | "library"
+  | "quotes"
+  | "text"
+  | "image"
+  | "icons"
+  | "banners"
+  | "canvas"
+  | "export";
 
 // Latin display fonts first, then Cyrillic-capable faces (для русского текста).
 const FONTS = [
@@ -145,12 +147,6 @@ export default function App() {
   useEffect(() => {
     storeExportPrefs({ destination: saveDestination });
   }, [saveDestination]);
-
-  useEffect(() => {
-    for (const sheet of FRAME_SHEETS) {
-      getImage(frameSheetUrl(sheet));
-    }
-  }, []);
 
   const promptExportFolder = useCallback(async () => {
     const handle = await pickExportFolder();
@@ -284,7 +280,12 @@ export default function App() {
     async (
       src: string,
       name: string,
-      opts?: { targetWidth?: number; centerX?: number; centerY?: number }
+      opts?: {
+        targetWidth?: number;
+        targetHeight?: number;
+        centerX?: number;
+        centerY?: number;
+      }
     ) => {
       try {
         const { w, h } = await loadDimensions(src);
@@ -293,11 +294,11 @@ export default function App() {
           const layoutScale = Math.sqrt((cw * ch) / (1024 * 1024));
           const centerX = opts?.centerX ?? cw / 2;
           const centerY = opts?.centerY ?? ch / 2;
-          const maxDim =
-            opts?.targetWidth ?? Math.round(520 * layoutScale);
-          const scale = opts?.targetWidth
-            ? maxDim / w
-            : Math.min(1, maxDim / Math.max(w, h));
+          const scale = opts?.targetHeight
+            ? opts.targetHeight / h
+            : opts?.targetWidth
+              ? opts.targetWidth / w
+              : Math.min(1, Math.round(520 * layoutScale) / Math.max(w, h));
           const width = Math.round(w * scale);
           const height = Math.round(h * scale);
           const layer: ImageLayer = {
@@ -658,7 +659,10 @@ export default function App() {
           <button className="primary" onClick={handleExport}>
             Export ⬇
           </button>
-          <button onClick={handleExportPack} title="ZIP: text + images separated">
+          <button
+            onClick={handleExportPack}
+            title="ZIP: text + images separated"
+          >
             Pack ⬇
           </button>
         </div>
@@ -674,6 +678,7 @@ export default function App() {
                 "text",
                 "image",
                 "icons",
+                "banners",
                 "canvas",
                 "export",
               ] as Tab[]
@@ -693,9 +698,11 @@ export default function App() {
                         ? "Images"
                         : t === "icons"
                           ? "Icons"
-                          : t === "canvas"
-                            ? "Canvas"
-                            : "Export"}
+                          : t === "banners"
+                            ? "Banners"
+                            : t === "canvas"
+                              ? "Canvas"
+                              : "Export"}
               </button>
             ))}
           </nav>
@@ -936,6 +943,16 @@ export default function App() {
               />
             )}
 
+            {tab === "banners" && (
+              <BannerLibrary
+                onAdd={(file, label) =>
+                  addImageFromSrc(iconUrl(file), label, {
+                    targetHeight: Math.round(state.canvasHeight * 0.92),
+                  })
+                }
+              />
+            )}
+
             {tab === "canvas" && (
               <>
                 <Section title="Layout presets">
@@ -961,7 +978,10 @@ export default function App() {
                     className="text-input"
                     value={state.projectName}
                     onChange={(e) =>
-                      set((p) => ({ ...p, projectName: e.target.value }), "replace")
+                      set(
+                        (p) => ({ ...p, projectName: e.target.value }),
+                        "replace"
+                      )
                     }
                     onBlur={(e) =>
                       set((p) => ({
@@ -999,7 +1019,10 @@ export default function App() {
                         : "No folder selected yet."}
                     </p>
                     <div className="row wrap">
-                      <button type="button" onClick={() => void promptExportFolder()}>
+                      <button
+                        type="button"
+                        onClick={() => void promptExportFolder()}
+                      >
                         Choose folder…
                       </button>
                       {exportFolder && (
@@ -1031,16 +1054,6 @@ export default function App() {
                     ))}
                   </select>
                 </Field>
-                <Toggle
-                  label="Include frame in export"
-                  checked={state.frame.exportWithFrame}
-                  onChange={(v) =>
-                    set((p) => ({
-                      ...p,
-                      frame: { ...p.frame, exportWithFrame: v },
-                    }))
-                  }
-                />
                 <button className="primary block-btn" onClick={handleExport}>
                   Export {state.canvasWidth}×{state.canvasHeight} ⬇
                 </button>
@@ -1170,10 +1183,7 @@ function CanvasControls({
   set: (u: (p: EditorState) => EditorState, m?: "commit" | "replace") => void;
 }) {
   const bg = state.background;
-  const f = state.frame;
   const bw = state.bw;
-  const borderFrame = isBorderFrameStyle(f.style);
-  const borderSheet = borderFrame ? frameSheetForStyle(f.style) : undefined;
   const [draftW, setDraftW] = useState(state.canvasWidth);
   const [draftH, setDraftH] = useState(state.canvasHeight);
   const [lockSquare, setLockSquare] = useState(
@@ -1193,8 +1203,7 @@ function CanvasControls({
     <>
       <Section title="Canvas size">
         <p className="muted">
-          Layers, text, frame and margins scale automatically when you change
-          size.
+          Layers, text, and images scale automatically when you change size.
         </p>
         <div className="preset-grid">
           {CANVAS_SIZE_PRESETS.map((preset) => (
@@ -1301,8 +1310,8 @@ function CanvasControls({
           <>
             <p className="muted">
               Source {bg.naturalWidth}×{bg.naturalHeight}px. Crop region (in
-              source pixels) is scaled to cover the canvas (
-              {state.canvasWidth}×{state.canvasHeight}).
+              source pixels) is scaled to cover the canvas ({state.canvasWidth}×
+              {state.canvasHeight}).
             </p>
             <div className="grid2">
               <Field label="Crop X">
@@ -1392,179 +1401,6 @@ function CanvasControls({
           <p className="muted">
             No background set. Add one from the Images tab.
           </p>
-        )}
-      </Section>
-
-      <Section title="Frame">
-        <Toggle
-          label="Show frame"
-          checked={f.enabled}
-          onChange={(v) =>
-            set((p) => ({ ...p, frame: { ...p.frame, enabled: v } }))
-          }
-        />
-        <Toggle
-          label="Export with frame"
-          checked={f.exportWithFrame}
-          onChange={(v) =>
-            set((p) => ({ ...p, frame: { ...p.frame, exportWithFrame: v } }))
-          }
-        />
-        <Field label="Style">
-          <select
-            className="text-input"
-            value={f.style}
-            onChange={(e) =>
-              set((p) => ({
-                ...p,
-                frame: { ...p.frame, style: e.target.value as typeof f.style },
-              }))
-            }
-          >
-            <optgroup label="Vector">
-              <option value="thin">Thin</option>
-              <option value="classic">Classic</option>
-              <option value="double">Double</option>
-              <option value="ornate">Ornate (studs)</option>
-              <option value="banner">Banner / scroll</option>
-            </optgroup>
-            <optgroup label="Custom borders">
-              {FRAME_SHEETS.map((sheet) => (
-                <option key={sheet.id} value={sheet.id}>
-                  {sheet.label}
-                </option>
-              ))}
-            </optgroup>
-          </select>
-        </Field>
-        {borderFrame && borderSheet && (
-          <>
-            {borderSheet.variants.length > 1 && (
-            <Field label="Border design">
-              <select
-                className="text-input"
-                value={f.frameVariant}
-                onChange={(e) =>
-                  set((p) => ({
-                    ...p,
-                    frame: {
-                      ...p.frame,
-                      frameVariant: Number(e.target.value),
-                    },
-                  }))
-                }
-              >
-                {borderSheet.variants.map((label, i) => (
-                  <option key={label} value={i}>
-                    {i + 1}. {label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            )}
-            <Field label="Frame scale (%)">
-              <Slider
-                min={20}
-                max={300}
-                step={1}
-                value={Math.round(f.frameScale * 100)}
-                onStart={() => set((p) => ({ ...p }))}
-                onChange={(v) =>
-                  set(
-                    (p) => ({
-                      ...p,
-                      frame: { ...p.frame, frameScale: v / 100 },
-                    }),
-                    "replace"
-                  )
-                }
-              />
-              <div className="row">
-                <NumberInput
-                  min={20}
-                  max={300}
-                  step={1}
-                  value={Math.round(f.frameScale * 100)}
-                  onChange={(v) =>
-                    set((p) => ({
-                      ...p,
-                      frame: {
-                        ...p.frame,
-                        frameScale: Math.min(3, Math.max(0.2, v / 100)),
-                      },
-                    }))
-                  }
-                />
-                <button
-                  type="button"
-                  onClick={() =>
-                    set((p) => ({
-                      ...p,
-                      frame: { ...p.frame, frameScale: 1 },
-                    }))
-                  }
-                >
-                  Fit
-                </button>
-              </div>
-            </Field>
-            <p className="muted">
-              Same thin outlines as your PNGs, proportions kept. 100% = fit
-              inside the canvas. Scale zooms without stretching.
-            </p>
-          </>
-        )}
-        <Field label="Frame colour">
-          <div className="row">
-            <button
-              className={f.color === "#000000" ? "active" : ""}
-              onClick={() =>
-                set((p) => ({ ...p, frame: { ...p.frame, color: "#000000" } }))
-              }
-            >
-              Black
-            </button>
-            <button
-              className={f.color === "#ffffff" ? "active" : ""}
-              onClick={() =>
-                set((p) => ({ ...p, frame: { ...p.frame, color: "#ffffff" } }))
-              }
-            >
-              White
-            </button>
-          </div>
-        </Field>
-        {!borderFrame && (
-          <>
-        <Field label="Thickness">
-          <Slider
-            min={1}
-            max={40}
-            value={f.thickness}
-            onStart={() => set((p) => ({ ...p }))}
-            onChange={(v) =>
-              set(
-                (p) => ({ ...p, frame: { ...p.frame, thickness: v } }),
-                "replace"
-              )
-            }
-          />
-        </Field>
-        <Field label="Margin">
-          <Slider
-            min={0}
-            max={120}
-            value={f.margin}
-            onStart={() => set((p) => ({ ...p }))}
-            onChange={(v) =>
-              set(
-                (p) => ({ ...p, frame: { ...p.frame, margin: v } }),
-                "replace"
-              )
-            }
-          />
-        </Field>
-          </>
         )}
       </Section>
     </>

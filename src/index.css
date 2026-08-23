@@ -157,6 +157,7 @@ button.danger {
 
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--border);
 }
 
@@ -602,6 +603,14 @@ hr {
   background: #ffffff;
   border-radius: 4px;
   padding: 4px;
+}
+
+.banner-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.banner-tile img {
+  height: 140px;
 }
 
 .icon-label {

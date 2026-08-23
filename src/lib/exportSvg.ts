@@ -1,7 +1,12 @@
-import { EditorState, TextLayer } from "../types";
+import { EditorState, ImageLayer, TextLayer } from "../types";
 import { getCanvasDimensions } from "./canvasSize";
-import { frameSvgMarkup } from "./frameVector";
-import { drawFrame, drawRasterContent, wrapText } from "./render";
+import { drawRasterContent, wrapText } from "./render";
+import {
+  imageLayerSvgMarkup,
+  isFullImageCrop,
+  isLocalVectorSrc,
+  loadSvgText,
+} from "./vectorSrc";
 
 const SVG_FONT_IMPORT =
   "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Cinzel+Decorative:wght@400;700;900&family=IM+Fell+English:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=UnifrakturMaguntia&family=MedievalSharp&family=Pirata+One&family=Marcellus+SC&family=Metamorphous&family=Ruslan+Display&family=Yeseva+One&family=Forum&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap";
@@ -63,30 +68,75 @@ function textLayerSvg(layer: TextLayer, ctx: CanvasRenderingContext2D): string {
     .join("\n");
 }
 
-async function frameLayerDataUrl(state: EditorState): Promise<string | null> {
-  const { width, height } = getCanvasDimensions(state);
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d")!;
-  drawFrame(ctx, state);
-  return canvasToDataUrl(canvas);
-}
+function rasterSliceDataUrl(
+  state: EditorState,
+  imageLayers: ImageLayer[],
+  mode: "base" | "overlay"
+): string | null {
+  if (mode === "overlay" && imageLayers.length === 0) return null;
+  const hasBg = Boolean(state.background.src && state.background.visible);
+  if (
+    mode === "base" &&
+    imageLayers.length === 0 &&
+    !hasBg &&
+    !state.bw.enabled
+  ) {
+    return null;
+  }
 
-async function rasterContentDataUrl(state: EditorState): Promise<string> {
   const { width, height } = getCanvasDimensions(state);
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
-  drawRasterContent(ctx, state);
+  const sub: EditorState = {
+    ...state,
+    layers: imageLayers,
+    background:
+      mode === "base"
+        ? state.background
+        : { ...state.background, src: null, visible: false },
+  };
+  drawRasterContent(ctx, sub, { transparent: mode === "overlay" });
   return canvasToDataUrl(canvas);
 }
 
-/** Build an SVG document mirroring the current scene (text stays vector). */
+function pushRaster(
+  parts: string[],
+  state: EditorState,
+  batch: ImageLayer[],
+  mode: "base" | "overlay"
+) {
+  const href = rasterSliceDataUrl(state, batch, mode);
+  if (!href) return;
+  const { width, height } = getCanvasDimensions(state);
+  parts.push(
+    `<image href="${href}" x="0" y="0" width="${width}" height="${height}" />`
+  );
+}
+
+async function vectorMarkupByLayer(
+  state: EditorState
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  for (const layer of state.layers) {
+    if (layer.type !== "image" || !layer.visible) continue;
+    if (layer.bw || !isLocalVectorSrc(layer.src) || !isFullImageCrop(layer)) {
+      continue;
+    }
+    const text = await loadSvgText(layer.src);
+    if (!text) continue;
+    const markup = imageLayerSvgMarkup(layer, text);
+    if (markup) out.set(layer.id, markup);
+  }
+  return out;
+}
+
+/** Build an SVG document mirroring the current scene (text + local SVG layers stay vector). */
 export async function exportSvg(state: EditorState): Promise<Blob> {
   const { width, height } = getCanvasDimensions(state);
   const ctx = measureCtx();
+  const vectors = await vectorMarkupByLayer(state);
   const parts: string[] = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
@@ -94,10 +144,21 @@ export async function exportSvg(state: EditorState): Promise<Blob> {
     `<rect width="100%" height="100%" fill="${state.canvasBg}"/>`,
   ];
 
-  const rasterHref = await rasterContentDataUrl(state);
-  parts.push(
-    `<image href="${rasterHref}" x="0" y="0" width="${width}" height="${height}" />`
-  );
+  let batch: ImageLayer[] = [];
+  let basePending = true;
+  for (const layer of state.layers) {
+    if (layer.type !== "image" || !layer.visible) continue;
+    const markup = vectors.get(layer.id);
+    if (markup) {
+      pushRaster(parts, state, batch, basePending ? "base" : "overlay");
+      batch = [];
+      basePending = false;
+      parts.push(markup);
+    } else {
+      batch.push(layer);
+    }
+  }
+  pushRaster(parts, state, batch, basePending ? "base" : "overlay");
 
   for (const layer of state.layers) {
     if (layer.type === "text") {
@@ -105,45 +166,6 @@ export async function exportSvg(state: EditorState): Promise<Blob> {
     }
   }
 
-  if (state.frame.enabled && state.frame.exportWithFrame) {
-    const markup = await frameSvgMarkup(state);
-    if (markup) {
-      parts.push(markup);
-    } else {
-      const frameHref = await frameLayerDataUrl(state);
-      if (frameHref) {
-        parts.push(
-          `<image href="${frameHref}" x="0" y="0" width="${width}" height="${height}" />`
-        );
-      }
-    }
-  }
-
   parts.push("</svg>");
   return new Blob([parts.join("\n")], { type: "image/svg+xml;charset=utf-8" });
-}
-
-function svgDocument(width: number, height: number, inner: string): Blob {
-  const svg = [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
-    inner,
-    "</svg>",
-  ].join("\n");
-  return new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-}
-
-/** Frame-only SVG with real vector paths (useful for asset pipelines). */
-export async function exportFrameSvg(state: EditorState): Promise<Blob | null> {
-  if (!state.frame.enabled) return null;
-  const { width, height } = getCanvasDimensions(state);
-  const markup = await frameSvgMarkup(state);
-  if (markup) return svgDocument(width, height, markup);
-  const frameHref = await frameLayerDataUrl(state);
-  if (!frameHref) return null;
-  return svgDocument(
-    width,
-    height,
-    `<image href="${frameHref}" x="0" y="0" width="${width}" height="${height}" />`
-  );
 }

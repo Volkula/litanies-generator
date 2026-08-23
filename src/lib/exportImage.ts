@@ -14,7 +14,7 @@ export const EXPORT_FORMATS: {
   { id: "jpeg", label: "JPEG", ext: "jpg" },
   { id: "webp", label: "WebP", ext: "webp" },
   { id: "bmp1", label: "BMP (1-bit B/W)", ext: "bmp" },
-  { id: "svg", label: "SVG (vector text)", ext: "svg" },
+  { id: "svg", label: "SVG (vector text + banners)", ext: "svg" },
 ];
 
 export function renderToCanvas(state: EditorState): HTMLCanvasElement {
@@ -23,7 +23,7 @@ export function renderToCanvas(state: EditorState): HTMLCanvasElement {
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
-  drawScene(ctx, state, { includeFrame: state.frame.exportWithFrame });
+  drawScene(ctx, state, { includeFrame: false });
   return canvas;
 }
 
